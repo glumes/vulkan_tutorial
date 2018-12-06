@@ -1,1 +1,1 @@
-include ':app', ':instance_and_device', ':command_buffer_and_fence'
+include ':app', ':instance_and_device', ':command_buffer_and_fence', ':swapchain_and_surface'
