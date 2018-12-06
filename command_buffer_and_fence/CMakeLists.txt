@@ -12,38 +12,39 @@ cmake_minimum_required(VERSION 3.4.1)
 
 
 add_library( # Sets the name of the library.
-        tutorial_1
+        vulkan_tutorial
 
         # Sets the library as a shared library.
         SHARED
 
         # Provides a relative path to your source file(s).
-        src/main/cpp/vulkan_tutorial_1.cpp
+        src/main/cpp/native-lib.cpp
+        src/main/cpp/command_buffer_and_fence.cpp
+
         src/main/cpp/utils/vulkan_util.cpp
         ${CMAKE_SOURCE_DIR}/src/main/cpp/vulkan_wrapper/vulkan_wrapper.cpp
         )
 
+target_include_directories(vulkan_tutorial PRIVATE
+        ${CMAKE_SOURCE_DIR}/../data
+        ${SHADERC_SRC}/third_party/spirv-tools/include
+        ${SHADERC_SRC}/third_party/spirv-tools/include/spirv-tools
+        ${CMAKE_SOURCE_DIR}/src/main/cpp/vulkan_wrapper
 
-target_include_directories(tutorial_1 PRIVATE
-                           ${CMAKE_SOURCE_DIR}/../data
-                           ${SHADERC_SRC}/third_party/spirv-tools/include
-                           ${SHADERC_SRC}/third_party/spirv-tools/include/spirv-tools
-                           ${CMAKE_SOURCE_DIR}/src/main/cpp/vulkan_wrapper
+        ${CMAKE_SOURCE_DIR}/src/main/cpp/common
+        ${CMAKE_SOURCE_DIR}/src/main/cpp/utils
 
-                           ${CMAKE_SOURCE_DIR}/src/main/cpp/common
-                           ${CMAKE_SOURCE_DIR}/src/main/cpp/utils
-
-                           )
+        )
 
 
 # SHADERC_SRC 变量指定为路径的绝对值
 get_filename_component(SHADERC_SRC
-                       ${ANDROID_NDK}/sources/third_party/shaderc
-                       ABSOLUTE)
+        ${ANDROID_NDK}/sources/third_party/shaderc
+        ABSOLUTE)
 
 add_library(shaderc_lib STATIC IMPORTED)
 set_target_properties(shaderc_lib PROPERTIES IMPORTED_LOCATION
-                      ${SHADERC_SRC}/libs/${ANDROID_STL}/${ANDROID_ABI}/libshaderc.a)
+        ${SHADERC_SRC}/libs/${ANDROID_STL}/${ANDROID_ABI}/libshaderc.a)
 
 # Searches for a specified prebuilt library and stores the path as a
 # variable. Because CMake includes system libraries in the search path by
@@ -63,7 +64,7 @@ find_library( # Sets the name of the path variable.
 # build script, prebuilt third-party libraries, or system libraries.
 
 target_link_libraries( # Specifies the target library.
-        tutorial_1
+        vulkan_tutorial
         shaderc_lib
         # Links the target library to the log library
         # included in the NDK.

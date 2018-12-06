@@ -26,4 +26,10 @@ class MainActivity : AppCompatActivity() {
         VulkanTutorial.initDevice()
     }
 
+    override fun onPause() {
+        super.onPause()
+        VulkanTutorial.destroyDevice()
+        VulkanTutorial.destroyInstance()
+    }
+
 }

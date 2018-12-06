@@ -1,3 +1,4 @@
+/*
 #include <jni.h>
 #include <string>
 #include <vector>
@@ -11,13 +12,6 @@
 
 #define INFO_NAME "vulkan_tutorial"
 
-extern "C" JNIEXPORT jstring JNICALL
-Java_com_glumes_tutorial_11_MainActivity_stringFromJNI(
-        JNIEnv *env,
-        jobject /* this */) {
-    std::string hello = "Hello from C++";
-    return env->NewStringUTF(hello.c_str());
-}
 
 static VkInstance inst = nullptr;
 extern "C"
@@ -29,7 +23,9 @@ Java_com_glumes_tutorial_11_VulkanTutorial_initInstance(JNIEnv *env, jclass type
         return;
     } else {
         LOGE("init success");
-    }
+    }*/
+/**//*
+
 
     VkApplicationInfo app_info = {};
     app_info.sType = VK_STRUCTURE_TYPE_APPLICATION_INFO;
@@ -170,7 +166,8 @@ Java_com_glumes_tutorial_11_VulkanTutorial_initDevice(JNIEnv *env, jclass type) 
     }
 
 
-    /**
+    */
+/**
      * 接下来 create command pool
      * 有一个 VkCommandPoolCreateInfo 来表示要创建的信息
      * 然后调用 vkCreateCommandPool 创建
@@ -181,10 +178,12 @@ Java_com_glumes_tutorial_11_VulkanTutorial_initDevice(JNIEnv *env, jclass type) 
      *
      * 最后通过：vkFreeCommandBuffers 销毁 command buffer
      * 再通过：vkDestroyCommandPool 销毁 command pool
-     */
+     *//*
 
 
-    /**
+
+    */
+/**
      * 创建 swapchain
      *
      * 用 VkAndroidSurfaceCreateInfoKHR 来表示要创建的 surface
@@ -207,8 +206,16 @@ Java_com_glumes_tutorial_11_VulkanTutorial_initDevice(JNIEnv *env, jclass type) 
      * 2.创建一个 WSI 表面并附加到窗口
      * 3.创建交换链，用于呈现到表面
      * 4.从创建的交换链请求绘图图像
-     */
+     *//*
+
 }
 
 
 
+extern "C"
+JNIEXPORT void JNICALL
+Java_com_glumes_tutorial_11_VulkanTutorial_destroyInstance(JNIEnv *env, jclass type) {
+
+    // TODO
+
+}*/

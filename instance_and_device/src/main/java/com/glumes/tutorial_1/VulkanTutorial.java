@@ -12,4 +12,8 @@ public class VulkanTutorial {
     public static native void initInstance();
 
     public static native void initDevice();
+
+    public static native void destroyInstance();
+
+    public static native void destroyDevice();
 }
