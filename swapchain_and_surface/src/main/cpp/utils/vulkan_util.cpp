@@ -12,6 +12,12 @@ VkResult initVulkan() {
 }
 
 
+void vulkan_init_layer_and_extension_properties(vulkan_tutorial_info &info) {
+
+
+}
+
+
 void vulkan_init_instance(struct vulkan_tutorial_info &info) {
 
     VkApplicationInfo app_info = {};
@@ -64,6 +70,7 @@ void vulkan_init_queue_family_and_index(struct vulkan_tutorial_info &info) {
     if (info.instance == nullptr) {
         return;
     }
+
 
     vkGetPhysicalDeviceQueueFamilyProperties(info.gpu_physical_devices[0], &info.queue_family_size,
                                              nullptr);

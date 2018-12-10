@@ -127,6 +127,8 @@ void run(struct vulkan_tutorial_info &info) {
     vkDestroyCommandPool(info.device, command_pool, nullptr);
     vkDestroyFence(info.device, fence, nullptr);
     vkDestroySemaphore(info.device, semaphore, nullptr);
+
+
 }
 
 void destroy(struct vulkan_tutorial_info &info) {

@@ -19,6 +19,7 @@ add_library( # Sets the name of the library.
         # Provides a relative path to your source file(s).
         src/main/cpp/native-lib.cpp
         src/main/cpp/command_buffer_and_fence.cpp
+        src/main/cpp/swapchain_and_surface.cpp
 
         src/main/cpp/utils/vulkan_util.cpp
         ${CMAKE_SOURCE_DIR}/src/main/cpp/vulkan_wrapper/vulkan_wrapper.cpp
@@ -59,6 +60,10 @@ find_library( # Sets the name of the path variable.
         # you want CMake to locate.
         log)
 
+
+#  使用 surface 拓展，需要加上这一句 关键
+set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++11  -Werror -D VK_USE_PLATFORM_ANDROID_KHR")
+
 # Specifies libraries CMake should link to your target library. You
 # can link multiple libraries, such as libraries you define in this
 # build script, prebuilt third-party libraries, or system libraries.
@@ -66,6 +71,7 @@ find_library( # Sets the name of the path variable.
 target_link_libraries( # Specifies the target library.
         vulkan_tutorial
         shaderc_lib
+        android
         # Links the target library to the log library
         # included in the NDK.
         ${log-lib})
