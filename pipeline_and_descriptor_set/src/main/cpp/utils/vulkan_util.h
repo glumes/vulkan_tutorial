@@ -14,22 +14,9 @@
 
 #define APP_SHORT_NAME "VulkanTutorial"
 
-
-#define GET_INSTANCE_PROC_ADDR(inst, entrypoint)                               \
-    {                                                                          \
-        info.fp##entrypoint =                                                  \
-            (PFN_vk##entrypoint)vkGetInstanceProcAddr(inst, "vk" #entrypoint); \
-        if (info.fp##entrypoint == NULL) {                                     \
-        }                                                                      \
-    }
-
-
 using namespace std;
 
-typedef struct _swap_chain_buffers {
-    VkImage image;
-    VkImageView view;
-} swap_chain_buffer;
+
 
 
 struct vulkan_tutorial_info {
@@ -39,34 +26,29 @@ struct vulkan_tutorial_info {
     uint32_t gpu_size;
     vector<VkPhysicalDevice> gpu_physical_devices;
 
-    // physical device 对应的 queue 数量
     uint32_t queue_family_size;
-    // queue 的 属性, 有多少个 queue 对应多少个 properties
     vector<VkQueueFamilyProperties> queue_family_props;
 
     uint32_t graphics_queue_family_index;
-    uint32_t present_queue_family_index;
 
-    VkSurfaceKHR surface;
+    std::vector<VkDescriptorSetLayout> desc_layout;
 
-    PFN_vkCreateAndroidSurfaceKHR fpCreateAndroidSurfaceKHR;
+    VkPipelineLayout pipeline_layout;
 
-    VkFormat format;
+    VkDescriptorPool desc_pool;
 
-    int width, height;
+    std::vector<VkDescriptorSet> desc_set;
 
-    VkSwapchainKHR swap_chain;
 
-    uint32_t swapchainImageCount;
-
-    std::vector<swap_chain_buffer> buffers;
-
+    struct {
+        VkBuffer buf;
+        VkDeviceMemory mem;
+        VkDescriptorBufferInfo buffer_info;
+    } uniform_data;
 };
 
 
 VkResult initVulkan();
-
-void vulkan_init_layer_and_extension_properties(vulkan_tutorial_info &info);
 
 void vulkan_init_instance(struct vulkan_tutorial_info &info);
 

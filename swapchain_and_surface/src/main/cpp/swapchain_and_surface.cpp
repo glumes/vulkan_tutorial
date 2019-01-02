@@ -4,6 +4,10 @@
 
 #include "swapchain_and_surface.h"
 
+
+// 创建 swapchain ，然后 swapchain 生成 image ,在生成 image 对应的 imageview
+// 最后再销毁 swapchain
+
 void run(struct vulkan_tutorial_info &info, ANativeWindow *window, int width, int height) {
 
     ErrorCheck(initVulkan());
@@ -44,7 +48,6 @@ void run(struct vulkan_tutorial_info &info, ANativeWindow *window, int width, in
     // 然后再查询设备对该 surface 支持的能力
     // 获得兼容的队列
 
-
     info.graphics_queue_family_index = UINT32_MAX;
     info.present_queue_family_index = UINT32_MAX;
 
@@ -69,7 +72,7 @@ void run(struct vulkan_tutorial_info &info, ANativeWindow *window, int width, in
         for (size_t i = 0; i < info.queue_family_size; ++i) {
             if (supportPresent[i] == VK_TRUE) {
                 info.present_queue_family_index = i;
-                break
+                break;
             }
         }
     }
@@ -105,19 +108,19 @@ void run(struct vulkan_tutorial_info &info, ANativeWindow *window, int width, in
     if (formatCount == 1 && surfaceFormats[0].format == VK_FORMAT_UNDEFINED) {
         info.format = VK_FORMAT_UNDEFINED;
     } else {
-        info.format == surfaceFormats[0].format;
+        info.format = surfaceFormats[0].format;
     }
 
     free(surfaceFormats);
 
     // 创建交换链
 
-
     // 物理设备表面的 能力
 
     // 这里是查询物理设备相关的能力
 
     // 物理设备提供的图像表面特性
+
     // 也就是 surface 的表面特性
 
     VkSurfaceCapabilitiesKHR surfaceCapabilitiesKHR;
@@ -221,7 +224,8 @@ void run(struct vulkan_tutorial_info &info, ANativeWindow *window, int width, in
     swapchain_ci.imageSharingMode = VK_SHARING_MODE_EXCLUSIVE;
     swapchain_ci.queueFamilyIndexCount = 0;
     swapchain_ci.pQueueFamilyIndices = NULL;
-    uint32_t queueFamilyIndices[2] = {(uint32_t)info.graphics_queue_family_index, (uint32_t)info.present_queue_family_index};
+    uint32_t queueFamilyIndices[2] = {(uint32_t) info.graphics_queue_family_index,
+                                      (uint32_t) info.present_queue_family_index};
     if (info.graphics_queue_family_index != info.present_queue_family_index) {
         // If the graphics and present queues are from different queue families,
         // we either have to explicitly transfer ownership of images between
@@ -245,7 +249,7 @@ void run(struct vulkan_tutorial_info &info, ANativeWindow *window, int width, in
     res = vkGetSwapchainImagesKHR(info.device, info.swap_chain, &info.swapchainImageCount, NULL);
     assert(res == VK_SUCCESS);
 
-    VkImage *swapchainImages = (VkImage *)malloc(info.swapchainImageCount * sizeof(VkImage));
+    VkImage *swapchainImages = (VkImage *) malloc(info.swapchainImageCount * sizeof(VkImage));
     assert(swapchainImages);
 
     res = vkGetSwapchainImagesKHR(info.device, info.swap_chain, &info.swapchainImageCount, swapchainImages);
@@ -288,4 +292,12 @@ void run(struct vulkan_tutorial_info &info, ANativeWindow *window, int width, in
         assert(res == VK_SUCCESS);
     }
 
+
+    for (uint32_t i = 0; i < info.swapchainImageCount; i++) {
+        vkDestroyImageView(info.device,info.buffers[i].view, nullptr);
+    }
+    vkDestroySwapchainKHR(info.device,info.swap_chain, nullptr);
+
+//    destroy(info);
 }
+
