@@ -12,16 +12,26 @@ void run(struct vulkan_tutorial_info &info, ANativeWindow *window, int width, in
 
     ErrorCheck(initVulkan());
 
-    // init extension properties
-//    vulkan_init_layer_and_extension_properties(info);
 
 
     GET_INSTANCE_PROC_ADDR(info.instance, CreateAndroidSurfaceKHR);
 
+    // Instance 的拓展
+    vulkan_init_instance_extension_name(info);
+
+    // Device 的拓展
+    vulkan_init_device_extension_name(info);
 
     vulkan_init_instance(info);
+
     vulkan_init_enumerate_device(info);
+
     vulkan_init_queue_family_and_index(info);
+
+
+
+
+    // 在 init device 之前 init swapchain
     vulkan_init_device(info);
 
     VkAndroidSurfaceCreateInfoKHR createInfo{};
@@ -34,6 +44,10 @@ void run(struct vulkan_tutorial_info &info, ANativeWindow *window, int width, in
 
 
     ErrorCheck(res);
+
+    // 先将所有的 index 都初始化到一个最大值，好用于后续的判断过程
+    info.graphics_queue_family_index = UINT32_MAX;
+    info.present_queue_family_index = UINT32_MAX;
 
     assert(res);
 
@@ -48,8 +62,6 @@ void run(struct vulkan_tutorial_info &info, ANativeWindow *window, int width, in
     // 然后再查询设备对该 surface 支持的能力
     // 获得兼容的队列
 
-    info.graphics_queue_family_index = UINT32_MAX;
-    info.present_queue_family_index = UINT32_MAX;
 
     for (uint32_t i = 0; i < info.queue_family_size; ++i) {
 

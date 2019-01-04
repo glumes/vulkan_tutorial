@@ -39,6 +39,13 @@ struct vulkan_tutorial_info {
     uint32_t gpu_size;
     vector<VkPhysicalDevice> gpu_physical_devices;
 
+    // instance 的 layer 属性
+    std::vector<const char *> instance_layer_names;
+    // instance 的 extension 拓展
+    std::vector<const char *> instance_extension_names;
+    // device 的 extension 拓展
+    std::vector<const char *> device_extension_names;
+
     // physical device 对应的 queue 数量
     uint32_t queue_family_size;
     // queue 的 属性, 有多少个 queue 对应多少个 properties
@@ -66,7 +73,10 @@ struct vulkan_tutorial_info {
 
 VkResult initVulkan();
 
-void vulkan_init_layer_and_extension_properties(vulkan_tutorial_info &info);
+
+void vulkan_init_instance_extension_name(struct vulkan_tutorial_info &info);
+
+void vulkan_init_device_extension_name(struct vulkan_tutorial_info &info);
 
 void vulkan_init_instance(struct vulkan_tutorial_info &info);
 

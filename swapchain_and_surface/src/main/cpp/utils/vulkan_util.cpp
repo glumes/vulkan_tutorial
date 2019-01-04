@@ -12,12 +12,6 @@ VkResult initVulkan() {
 }
 
 
-void vulkan_init_layer_and_extension_properties(vulkan_tutorial_info &info) {
-
-
-}
-
-
 void vulkan_init_instance(struct vulkan_tutorial_info &info) {
 
     VkApplicationInfo app_info = {};
@@ -38,8 +32,9 @@ void vulkan_init_instance(struct vulkan_tutorial_info &info) {
     instance_info.pApplicationInfo = &app_info;
     instance_info.flags = 0;
     // Extension and Layer
-    instance_info.enabledExtensionCount = 0;
-    instance_info.ppEnabledExtensionNames = nullptr;
+    instance_info.enabledExtensionCount = info.instance_extension_names.size();
+    instance_info.ppEnabledExtensionNames = info.instance_extension_names.data();
+    // 这里没有用到 Layer 就还是设为 null 就好了
     instance_info.ppEnabledLayerNames = nullptr;
     instance_info.enabledLayerCount = 0;
 
@@ -103,7 +98,7 @@ void vulkan_init_device(struct vulkan_tutorial_info &info) {
     queue_info.pNext = nullptr;
     queue_info.queueCount = 1;
     queue_info.pQueuePriorities = queue_priorities;
-
+    queue_info.queueFamilyIndex = info.graphics_queue_family_index;
 
     VkDeviceCreateInfo device_info = {};
 
@@ -112,8 +107,9 @@ void vulkan_init_device(struct vulkan_tutorial_info &info) {
     device_info.queueCreateInfoCount = 1;
     device_info.pQueueCreateInfos = &queue_info;
 
-    device_info.enabledExtensionCount = 0;
-    device_info.ppEnabledExtensionNames = NULL;
+    device_info.enabledExtensionCount = info.device_extension_names.size();
+    device_info.ppEnabledExtensionNames = info.device_extension_names.data();
+    // 这里没有用到 Layer 就还是设为 null 就好了
     device_info.enabledLayerCount = 0;
     device_info.ppEnabledLayerNames = NULL;
     device_info.pEnabledFeatures = NULL;
@@ -198,6 +194,16 @@ void ErrorCheck(VkResult result) {
                 break;
         }
     }
+}
+
+
+void vulkan_init_instance_extension_name(struct vulkan_tutorial_info &info) {
+    info.instance_extension_names.push_back(VK_KHR_SURFACE_EXTENSION_NAME);
+    info.instance_extension_names.push_back(VK_KHR_ANDROID_SURFACE_EXTENSION_NAME);
+}
+
+void vulkan_init_device_extension_name(struct vulkan_tutorial_info &info) {
+    info.device_extension_names.push_back(VK_KHR_SWAPCHAIN_EXTENSION_NAME);
 }
 
 

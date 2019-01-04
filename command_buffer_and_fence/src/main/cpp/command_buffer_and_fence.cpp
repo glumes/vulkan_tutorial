@@ -14,7 +14,9 @@ void run(struct vulkan_tutorial_info &info) {
 
     VkFence fence;
     VkFenceCreateInfo fence_info = {};
+    // 默认是 unsignaled state
     fence_info.sType = VK_STRUCTURE_TYPE_FENCE_CREATE_INFO;
+    fence_info.flags = VK_FENCE_CREATE_SIGNALED_BIT;
     vkCreateFence(info.device, &fence_info, nullptr, &fence);
 
     VkSemaphore semaphore;
@@ -38,89 +40,119 @@ void run(struct vulkan_tutorial_info &info) {
     vkAllocateCommandBuffers(info.device, &command_buffer_allocate_info, commandBuffer);
 
 
+    // 简单的提交过程
+    VkCommandBufferBeginInfo beginInfo1 = {};
+    beginInfo1.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO;
+    beginInfo1.flags = VK_COMMAND_BUFFER_USAGE_ONE_TIME_SUBMIT_BIT;
+    vkBeginCommandBuffer(commandBuffer[0], &beginInfo1);
 
-    {
-        VkCommandBufferBeginInfo beginInfo = {};
-        beginInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO;
-        vkBeginCommandBuffer(commandBuffer[0], &beginInfo);
-        vkCmdPipelineBarrier(commandBuffer[0], VK_PIPELINE_STAGE_ALL_COMMANDS_BIT, VK_PIPELINE_STAGE_ALL_COMMANDS_BIT,
-                             0,
-                             0, nullptr,
-                             0, nullptr,
-                             0, nullptr);
+    // 省略中间的 vkCmdXXXX 系列方法
 
-        VkViewport viewport = {};
+    vkEndCommandBuffer(commandBuffer[0]);
 
-        viewport.maxDepth = 1.0f;
-        viewport.minDepth = 0.0f;
-        viewport.width = 512;
-        viewport.height = 512;
-        viewport.x = 0;
-        viewport.y = 0;
+    VkSubmitInfo submitInfo1 = {};
+    submitInfo1.sType = VK_STRUCTURE_TYPE_SUBMIT_INFO;
 
-        vkCmdSetViewport(commandBuffer[0], 0, 1, &viewport);
+    submitInfo1.commandBufferCount = 1;
+    submitInfo1.pCommandBuffers = &commandBuffer[0];
 
-        vkEndCommandBuffer(commandBuffer[0]);
-
-    }
-
-    {
-        VkCommandBufferBeginInfo beginInfo = {};
-        beginInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO;
-        vkBeginCommandBuffer(commandBuffer[0], &beginInfo);
-
-        vkCmdPipelineBarrier(commandBuffer[0], VK_PIPELINE_STAGE_ALL_COMMANDS_BIT, VK_PIPELINE_STAGE_ALL_COMMANDS_BIT,
-                             0,
-                             0, nullptr,
-                             0, nullptr,
-                             0, nullptr);
-
-        VkViewport viewport = {};
-
-        viewport.maxDepth = 1.0f;
-        viewport.minDepth = 0.0f;
-        viewport.width = 512;
-        viewport.height = 512;
-        viewport.x = 0;
-        viewport.y = 0;
-
-        vkCmdSetViewport(commandBuffer[0], 0, 1, &viewport);
-
-        vkEndCommandBuffer(commandBuffer[0]);
-
-    }
-
-    {
-        VkSubmitInfo submitInfo = {};
-        submitInfo.sType = VK_STRUCTURE_TYPE_SUBMIT_INFO;
-        submitInfo.commandBufferCount = 1;
-        submitInfo.pCommandBuffers = &commandBuffer[0];
-
-        // signal semaphore
-        submitInfo.signalSemaphoreCount = 1;
-        submitInfo.pSignalSemaphores = &semaphore;
+    // pWaitSemaphores 和 pSignalSemaphores 都不设置，只是提交
+    // 注意最后的参数 临时设置为 VK_NULL_HANDLE，也可以设置为  Fence 来同步
+    vkQueueSubmit(info.queue, 1, &submitInfo1, VK_NULL_HANDLE);
 
 
-        vkQueueSubmit(info.queue, 1, &submitInfo, VK_NULL_HANDLE);
-    }
+    // wait fence to enter the signaled state on the host
+//    VkResult res = vkWaitForFences(info.device, 1, &fence, VK_TRUE, UINT64_MAX);
+    VkResult res;
+    LOGD("start wait");
+    do {
+        res = vkWaitForFences(info.device, 1, &fence, VK_TRUE, UINT64_MAX);
+        LOGD("wait");
+    } while (res == VK_TIMEOUT);
 
-    {
-        VkPipelineStageFlags flags[] = {
-                VK_PIPELINE_STAGE_ALL_COMMANDS_BIT
-        };
+    LOGD("fence enter the signaled state");
 
-        VkSubmitInfo submitInfo = {};
-        submitInfo.sType = VK_STRUCTURE_TYPE_SUBMIT_INFO;
-        submitInfo.commandBufferCount = 1;
-        submitInfo.pCommandBuffers = &commandBuffer[0];
-
-        // wait semaphore
-        submitInfo.waitSemaphoreCount = 1;
-        submitInfo.pWaitSemaphores = &semaphore;
-        submitInfo.pWaitDstStageMask = flags;
-
-        vkQueueSubmit(info.queue, 1, &submitInfo, VK_NULL_HANDLE);
-    }
+//
+//
+//    {
+//        VkCommandBufferBeginInfo beginInfo = {};
+//        beginInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO;
+//        beginInfo.flags = VK_COMMAND_BUFFER_USAGE_ONE_TIME_SUBMIT_BIT;
+//        vkBeginCommandBuffer(commandBuffer[0], &beginInfo);
+//
+//        vkCmdPipelineBarrier(commandBuffer[0], VK_PIPELINE_STAGE_ALL_COMMANDS_BIT, VK_PIPELINE_STAGE_ALL_COMMANDS_BIT,
+//                             0,
+//                             0, nullptr,
+//                             0, nullptr,
+//                             0, nullptr);
+//
+//        VkViewport viewport = {};
+//
+//        viewport.maxDepth = 1.0f;
+//        viewport.minDepth = 0.0f;
+//        viewport.width = 512;
+//        viewport.height = 512;
+//        viewport.x = 0;
+//        viewport.y = 0;
+//
+//        vkCmdSetViewport(commandBuffer[0], 0, 1, &viewport);
+//
+//        vkEndCommandBuffer(commandBuffer[0]);
+//
+//    }
+//
+//    {
+//        VkCommandBufferBeginInfo beginInfo = {};
+//        beginInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO;
+//        vkBeginCommandBuffer(commandBuffer[1], &beginInfo);
+//
+//
+//        VkViewport viewport = {};
+//
+//        viewport.maxDepth = 1.0f;
+//        viewport.minDepth = 0.0f;
+//        viewport.width = 512;
+//        viewport.height = 512;
+//        viewport.x = 0;
+//        viewport.y = 0;
+//
+//        vkCmdSetViewport(commandBuffer[1], 0, 1, &viewport);
+//
+//        vkEndCommandBuffer(commandBuffer[1]);
+//
+//    }
+//
+//    {
+//        VkSubmitInfo submitInfo = {};
+//        submitInfo.sType = VK_STRUCTURE_TYPE_SUBMIT_INFO;
+//        submitInfo.commandBufferCount = 1;
+//        submitInfo.pCommandBuffers = &commandBuffer[0];
+//
+//        // signal semaphore
+//        submitInfo.signalSemaphoreCount = 1;
+//        submitInfo.pSignalSemaphores = &semaphore;
+//
+//
+//        vkQueueSubmit(info.queue, 1, &submitInfo, VK_NULL_HANDLE);
+//    }
+//
+//    {
+//        VkPipelineStageFlags flags[] = {
+//                VK_PIPELINE_STAGE_ALL_COMMANDS_BIT
+//        };
+//
+//        VkSubmitInfo submitInfo = {};
+//        submitInfo.sType = VK_STRUCTURE_TYPE_SUBMIT_INFO;
+//        submitInfo.commandBufferCount = 1;
+//        submitInfo.pCommandBuffers = &commandBuffer[1];
+//
+//        // wait semaphore
+//        submitInfo.waitSemaphoreCount = 1;
+//        submitInfo.pWaitSemaphores = &semaphore;
+//        submitInfo.pWaitDstStageMask = flags;
+//
+//        vkQueueSubmit(info.queue, 1, &submitInfo, VK_NULL_HANDLE);
+//    }
 
     vkQueueWaitIdle(info.queue);
 
@@ -128,7 +160,7 @@ void run(struct vulkan_tutorial_info &info) {
     vkDestroyFence(info.device, fence, nullptr);
     vkDestroySemaphore(info.device, semaphore, nullptr);
 
-
+    LOGD("finish run");
 }
 
 void destroy(struct vulkan_tutorial_info &info) {
