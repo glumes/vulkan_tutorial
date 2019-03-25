@@ -300,15 +300,18 @@ void run(struct vulkan_tutorial_info &info, ANativeWindow *window, int width, in
         color_image_view.subresourceRange.baseArrayLayer = 0;
         color_image_view.subresourceRange.layerCount = 1;
 
+
         res = vkCreateImageView(info.device, &color_image_view, NULL, &info.buffers[i].view);
         assert(res == VK_SUCCESS);
     }
 
 
-    for (uint32_t i = 0; i < info.swapchainImageCount; i++) {
-        vkDestroyImageView(info.device,info.buffers[i].view, nullptr);
-    }
-    vkDestroySwapchainKHR(info.device,info.swap_chain, nullptr);
+
+
+//    for (uint32_t i = 0; i < info.swapchainImageCount; i++) {
+//        vkDestroyImageView(info.device,info.buffers[i].view, nullptr);
+//    }
+//    vkDestroySwapchainKHR(info.device,info.swap_chain, nullptr);
 
 //    destroy(info);
 }
