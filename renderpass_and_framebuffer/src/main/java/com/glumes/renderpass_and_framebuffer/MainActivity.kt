@@ -1,9 +1,10 @@
-package com.glumes.swapchain_and_surface
+package com.glumes.renderpass_and_framebuffer
 
 import android.support.v7.app.AppCompatActivity
 import android.os.Bundle
 import android.view.SurfaceHolder
 import kotlinx.android.synthetic.main.activity_main.*
+
 
 class MainActivity : AppCompatActivity() {
 

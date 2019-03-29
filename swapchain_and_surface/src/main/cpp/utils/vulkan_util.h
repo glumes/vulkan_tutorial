@@ -19,7 +19,8 @@
     {                                                                          \
         info.fp##entrypoint =                                                  \
             (PFN_vk##entrypoint)vkGetInstanceProcAddr(inst, "vk" #entrypoint); \
-        if (info.fp##entrypoint == NULL) {                                     \
+        if (info.fp##entrypoint == nullptr) {                                  \
+            LOGE("entry point is null");                                       \
         }                                                                      \
     }
 

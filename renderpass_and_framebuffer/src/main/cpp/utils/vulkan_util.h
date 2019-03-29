@@ -9,10 +9,16 @@
 #include <vulkan_wrapper.h>
 #include <vulkan/vulkan.h>
 #include <logutil.h>
+#include <unistd.h>
 
 #include <vector>
 
 #define APP_SHORT_NAME "VulkanTutorial"
+
+#define FENCE_TIMEOUT 100000000
+
+
+#define NUM_SAMPLES VK_SAMPLE_COUNT_1_BIT
 
 
 #define GET_INSTANCE_PROC_ADDR(inst, entrypoint)                               \
@@ -68,6 +74,30 @@ struct vulkan_tutorial_info {
 
     std::vector<swap_chain_buffer> buffers;
 
+    uint32_t current_buffer;
+
+    VkRenderPass render_pass;
+
+
+    struct {
+        VkFormat format;
+
+        VkImage image;
+        VkDeviceMemory mem;
+        VkImageView view;
+    } depth;
+
+    VkFramebuffer *framebuffers;
+
+
+    VkCommandBuffer cmd; // Buffer for initialization commands
+
+    // 之前没有
+    VkQueue graphics_queue;
+    VkQueue present_queue;
+
+    VkCommandPool cmd_pool;
+
 };
 
 
@@ -86,7 +116,32 @@ void vulkan_init_queue_family_and_index(struct vulkan_tutorial_info &info);
 
 void vulkan_init_device(struct vulkan_tutorial_info &info);
 
+void vulkan_init_swapchain_extension(struct vulkan_tutorial_info &info, ANativeWindow *window);
+
+void vulkan_init_device_queue(struct vulkan_tutorial_info &info);
+
 void vulkan_init_swapchain(struct vulkan_tutorial_info &info);
+
+void vulkan_init_renderpass(struct vulkan_tutorial_info &info, bool clear = true,
+                            VkImageLayout finalLayout = VK_IMAGE_LAYOUT_PRESENT_SRC_KHR);
+
+void vulkan_init_framebuffer(struct vulkan_tutorial_info &info);
+
+void vulkan_init_command_pool(struct vulkan_tutorial_info &info);
+
+void vulkan_init_command_buffer(struct vulkan_tutorial_info &info);
+
+void vulkan_execute_begin_command_buffer(struct vulkan_tutorial_info &info);
+
+void vulkan_acquire_next_image(struct vulkan_tutorial_info &info, VkSemaphore &imageAcquiredSemaphore);
+
+void vulkan_build_command(struct vulkan_tutorial_info &info);
+
+void vulkan_submit_command(struct vulkan_tutorial_info &info, VkFence &drawFence, VkSemaphore imageAcquiredSemaphore);
+
+void vulkan_present(struct vulkan_tutorial_info &info, VkFence &drawFence);
+
+void vulkan_wait_second(int seconds);
 
 void vulkan_destroy_device(struct vulkan_tutorial_info &info);
 

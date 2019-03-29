@@ -14,8 +14,6 @@ void run(struct vulkan_tutorial_info &info, ANativeWindow *window, int width, in
 
 
 
-    GET_INSTANCE_PROC_ADDR(info.instance, CreateAndroidSurfaceKHR);
-
     // Instance 的拓展
     vulkan_init_instance_extension_name(info);
 
@@ -34,7 +32,11 @@ void run(struct vulkan_tutorial_info &info, ANativeWindow *window, int width, in
     // 在 init device 之前 init swapchain
     vulkan_init_device(info);
 
-    VkAndroidSurfaceCreateInfoKHR createInfo{};
+
+    GET_INSTANCE_PROC_ADDR(info.instance, CreateAndroidSurfaceKHR);
+
+
+    VkAndroidSurfaceCreateInfoKHR createInfo;
     createInfo.sType = VK_STRUCTURE_TYPE_ANDROID_SURFACE_CREATE_INFO_KHR;
     createInfo.pNext = nullptr;
     createInfo.flags = 0;
@@ -49,7 +51,7 @@ void run(struct vulkan_tutorial_info &info, ANativeWindow *window, int width, in
     info.graphics_queue_family_index = UINT32_MAX;
     info.present_queue_family_index = UINT32_MAX;
 
-    assert(res);
+    assert(res == VK_SUCCESS);
 
     VkBool32 *supportPresent = static_cast<VkBool32 *>(malloc(info.queue_family_size * sizeof(VkBool32)));
 
