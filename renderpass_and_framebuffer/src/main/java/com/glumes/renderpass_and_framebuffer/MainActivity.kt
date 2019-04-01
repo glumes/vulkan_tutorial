@@ -23,6 +23,7 @@ class MainActivity : AppCompatActivity() {
             }
 
             override fun surfaceDestroyed(holder: SurfaceHolder?) {
+
             }
 
             override fun surfaceCreated(holder: SurfaceHolder?) {

@@ -23,11 +23,23 @@ void run(struct vulkan_tutorial_info &info, ANativeWindow *window, int width, in
 
     vulkan_init_queue_family_and_index(info);
 
+
+    info.width = width;
+    info.height = height;
+
     // 在 init device 之前 init swapchain
+    vulkan_init_swapchain_extension(info, window);
+
+
     vulkan_init_device(info);
 
+    vulkan_init_command_pool(info);
 
-    vulkan_init_swapchain_extension(info, window);
+    vulkan_init_command_buffer(info);
+
+    vulkan_execute_begin_command_buffer(info);
+
+    vulkan_init_device_queue(info);
 
     vulkan_init_swapchain(info);
 
@@ -35,15 +47,11 @@ void run(struct vulkan_tutorial_info &info, ANativeWindow *window, int width, in
 
     vulkan_init_framebuffer(info);
 
-
-
     VkSemaphore imageAcquiredSemaphore;
 
     VkFence drawFence;
 
-
     vulkan_acquire_next_image(info, imageAcquiredSemaphore);
-
 
     vulkan_build_command(info);
 

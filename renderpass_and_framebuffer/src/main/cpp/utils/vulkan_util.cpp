@@ -119,15 +119,21 @@ void vulkan_init_device(struct vulkan_tutorial_info &info) {
     ErrorCheck(res);
 
     // todo
-    vkGetDeviceQueue(info.device, info.graphics_queue_family_index, 0, &info.queue);
+//    vkGetDeviceQueue(info.device, info.graphics_queue_family_index, 0, &info.queue);
 }
 
 void vulkan_init_device_queue(struct vulkan_tutorial_info &info) {
-
+    vkGetDeviceQueue(info.device, info.graphics_queue_family_index, 0, &info.graphics_queue);
+    if (info.graphics_queue_family_index == info.present_queue_family_index) {
+        info.present_queue = info.graphics_queue;
+    } else {
+        vkGetDeviceQueue(info.device, info.present_queue_family_index, 0, &info.present_queue);
+    }
 }
 
 
 void vulkan_init_swapchain_extension(struct vulkan_tutorial_info &info, ANativeWindow *window) {
+
 
 
     GET_INSTANCE_PROC_ADDR(info.instance, CreateAndroidSurfaceKHR);
@@ -495,7 +501,7 @@ void vulkan_init_command_pool(struct vulkan_tutorial_info &info) {
     cmd_pool_info.flags = VK_COMMAND_POOL_CREATE_RESET_COMMAND_BUFFER_BIT;
 
     VkResult res = vkCreateCommandPool(info.device, &cmd_pool_info, nullptr, &info.cmd_pool);
-    assert(res);
+    assert(res == VK_SUCCESS);
 }
 
 void vulkan_init_command_buffer(struct vulkan_tutorial_info &info) {
