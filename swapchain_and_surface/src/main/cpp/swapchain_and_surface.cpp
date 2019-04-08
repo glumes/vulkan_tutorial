@@ -24,17 +24,20 @@ void run(struct vulkan_tutorial_info &info, ANativeWindow *window, int width, in
 
     vulkan_init_enumerate_device(info);
 
+    // 找到 queue family index 的个数就好了
     vulkan_init_queue_family_and_index(info);
 
 
 
+    info.width = width;
+    info.height = height;
 
-    // 在 init device 之前 init swapchain
-    vulkan_init_device(info);
+    // 创建 device 需要 queue 的 index 索引，而 index 索引也是 swapchain 需要的。
+    // 所以在完成 swapchain 的索引检索之后，再开始 device 的创建
 
+//    vulkan_init_device(info);
 
     GET_INSTANCE_PROC_ADDR(info.instance, CreateAndroidSurfaceKHR);
-
 
     VkAndroidSurfaceCreateInfoKHR createInfo;
     createInfo.sType = VK_STRUCTURE_TYPE_ANDROID_SURFACE_CREATE_INFO_KHR;
@@ -43,7 +46,6 @@ void run(struct vulkan_tutorial_info &info, ANativeWindow *window, int width, in
     createInfo.window = window;
 
     VkResult res = info.fpCreateAndroidSurfaceKHR(info.instance, &createInfo, nullptr, &info.surface);
-
 
     ErrorCheck(res);
 
@@ -97,6 +99,18 @@ void run(struct vulkan_tutorial_info &info, ANativeWindow *window, int width, in
         LOGE("could not find a queue for graphics and present");
     }
 
+    // 创建 device
+    vulkan_init_device(info);
+
+    // 得到设备的 queue
+    vkGetDeviceQueue(info.device, info.graphics_queue_family_index, 0, &info.graphics_queue);
+
+    if (info.graphics_queue_family_index == info.present_queue_family_index) {
+        info.present_queue = info.graphics_queue;
+    } else {
+        vkGetDeviceQueue(info.device, info.present_queue_family_index, 0, &info.present_queue);
+    }
+
 
     // 查询表面格式
     // 检索物理设备支持的所有公开的表面格式
@@ -145,7 +159,6 @@ void run(struct vulkan_tutorial_info &info, ANativeWindow *window, int width, in
 
     ErrorCheck(res);
 
-
     uint32_t presentModeCount;
     res = vkGetPhysicalDeviceSurfacePresentModesKHR(info.gpu_physical_devices[0], info.surface, &presentModeCount,
                                                     NULL);
@@ -156,9 +169,9 @@ void run(struct vulkan_tutorial_info &info, ANativeWindow *window, int width, in
                                                     presentModes);
     assert(res == VK_SUCCESS);
 
-
     VkExtent2D swapchainExtent;
 
+    // 设定宽高
     if (surfaceCapabilitiesKHR.currentExtent.width == 0xFFFFFFFF) {
         swapchainExtent.width = info.width;
         swapchainExtent.height = info.height;
@@ -189,6 +202,7 @@ void run(struct vulkan_tutorial_info &info, ANativeWindow *window, int width, in
 
     uint32_t desiredNumberOfSwapChainImages = surfaceCapabilitiesKHR.minImageCount;
 
+    // surface 的旋转模式
     VkSurfaceTransformFlagBitsKHR preTransform;
     if (surfaceCapabilitiesKHR.supportedTransforms & VK_SURFACE_TRANSFORM_IDENTITY_BIT_KHR) {
         preTransform = VK_SURFACE_TRANSFORM_IDENTITY_BIT_KHR;
@@ -196,6 +210,7 @@ void run(struct vulkan_tutorial_info &info, ANativeWindow *window, int width, in
         preTransform = surfaceCapabilitiesKHR.currentTransform;
     }
 
+    // surface 透明度合成的模式
     VkCompositeAlphaFlagBitsKHR compositeAlpha = VK_COMPOSITE_ALPHA_OPAQUE_BIT_KHR;
     VkCompositeAlphaFlagBitsKHR compositeAlphaFlags[4] = {
             VK_COMPOSITE_ALPHA_OPAQUE_BIT_KHR,
@@ -211,13 +226,11 @@ void run(struct vulkan_tutorial_info &info, ANativeWindow *window, int width, in
         }
     }
 
-
     // 创建一个 swapchain 需要 4 个条件
     // VkExtent2D
     // VkPresentModeKHR
     // VkSurfaceTransformFlagBitsKHR
     // VkCompositeAlphaFlagBitsKHR
-
 
     VkSwapchainCreateInfoKHR swapchain_ci = {};
     swapchain_ci.sType = VK_STRUCTURE_TYPE_SWAPCHAIN_CREATE_INFO_KHR;
@@ -240,6 +253,7 @@ void run(struct vulkan_tutorial_info &info, ANativeWindow *window, int width, in
     swapchain_ci.pQueueFamilyIndices = NULL;
     uint32_t queueFamilyIndices[2] = {(uint32_t) info.graphics_queue_family_index,
                                       (uint32_t) info.present_queue_family_index};
+    // 如果图像和显示的队列索引不一致，就要设定共享模式
     if (info.graphics_queue_family_index != info.present_queue_family_index) {
         // If the graphics and present queues are from different queue families,
         // we either have to explicitly transfer ownership of images between
@@ -252,7 +266,6 @@ void run(struct vulkan_tutorial_info &info, ANativeWindow *window, int width, in
 
     res = vkCreateSwapchainKHR(info.device, &swapchain_ci, NULL, &info.swap_chain);
     assert(res == VK_SUCCESS);
-
 
     // 得到 swapchain image
 
@@ -269,20 +282,17 @@ void run(struct vulkan_tutorial_info &info, ANativeWindow *window, int width, in
     res = vkGetSwapchainImagesKHR(info.device, info.swap_chain, &info.swapchainImageCount, swapchainImages);
     assert(res == VK_SUCCESS);
 
+    // 创建彩色图像视图
+    // 应用程序不会直接以图像对象的形式使用图像
+    // 而是通过图像视图的方式
+
+    // 对每个交换链图像，
+    // swap_chain_buffer 包含一个 image 和 imageview
 
     info.buffers.resize(info.swapchainImageCount);
     for (uint32_t i = 0; i < info.swapchainImageCount; i++) {
         info.buffers[i].image = swapchainImages[i];
     }
-    free(swapchainImages);
-
-
-    // 创建彩色图像视图
-    // 应用程序不会直接以图像对象的形式使用图像
-    // 而是通过图像视图的方式
-
-
-    // 对每个交换链图像，通过遍历来可用的图像对象列表来创建相应的图像视图
 
     for (uint32_t i = 0; i < info.swapchainImageCount; i++) {
         VkImageViewCreateInfo color_image_view = {};
@@ -302,19 +312,13 @@ void run(struct vulkan_tutorial_info &info, ANativeWindow *window, int width, in
         color_image_view.subresourceRange.baseArrayLayer = 0;
         color_image_view.subresourceRange.layerCount = 1;
 
-
         res = vkCreateImageView(info.device, &color_image_view, NULL, &info.buffers[i].view);
         assert(res == VK_SUCCESS);
     }
 
+    free(swapchainImages);
 
+    info.current_buffer = 0;
 
-
-//    for (uint32_t i = 0; i < info.swapchainImageCount; i++) {
-//        vkDestroyImageView(info.device,info.buffers[i].view, nullptr);
-//    }
-//    vkDestroySwapchainKHR(info.device,info.swap_chain, nullptr);
-
-//    destroy(info);
 }
 

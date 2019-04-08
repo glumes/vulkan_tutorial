@@ -36,7 +36,9 @@ typedef struct _swap_chain_buffers {
 struct vulkan_tutorial_info {
     VkInstance instance;
     VkDevice device;
+
     VkQueue queue;
+
     uint32_t gpu_size;
     vector<VkPhysicalDevice> gpu_physical_devices;
 
@@ -68,6 +70,12 @@ struct vulkan_tutorial_info {
     uint32_t swapchainImageCount;
 
     std::vector<swap_chain_buffer> buffers;
+
+
+    VkQueue graphics_queue;
+    VkQueue present_queue;
+
+    uint32_t current_buffer;
 
 };
 
