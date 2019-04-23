@@ -76,18 +76,18 @@ void vulkan_init_queue_family_and_index(struct vulkan_tutorial_info &info) {
                                              info.queue_family_props.data());
     assert(info.queue_family_size != 0);
 
-    bool found = false;
-    for (unsigned int i = 0; i < info.queue_family_size; i++) {
-        if (info.queue_family_props[i].queueFlags & VK_QUEUE_GRAPHICS_BIT) {
-            info.graphics_queue_family_index = i;
-            found = true;
-            break;
-        }
-    }
-    assert(found);
+//    bool found = false;
+//    for (unsigned int i = 0; i < info.queue_family_size; i++) {
+//        if (info.queue_family_props[i].queueFlags & VK_QUEUE_GRAPHICS_BIT) {
+//            info.graphics_queue_family_index = i;
+//            found = true;
+//            break;
+//        }
+//    }
+//    assert(found);
 }
 
-
+// 在 创建 device 之前，要完成 queue 的索引检索操作，找到用于渲染和显示的 queue 索引
 void vulkan_init_device(struct vulkan_tutorial_info &info) {
 
     VkDeviceQueueCreateInfo queue_info = {};
@@ -118,8 +118,7 @@ void vulkan_init_device(struct vulkan_tutorial_info &info) {
 
     ErrorCheck(res);
 
-    // todo
-    vkGetDeviceQueue(info.device, info.graphics_queue_family_index, 0, &info.queue);
+//    vkGetDeviceQueue(info.device, info.graphics_queue_family_index, 0, &info.queue);
 }
 
 

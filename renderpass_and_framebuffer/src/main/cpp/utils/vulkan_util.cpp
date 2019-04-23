@@ -76,6 +76,7 @@ void vulkan_init_queue_family_and_index(struct vulkan_tutorial_info &info) {
                                              info.queue_family_props.data());
     assert(info.queue_family_size != 0);
 
+    // 在这一步反而不需要找到用于渲染的 queue flag，可以在后续创建 swapchain 的时候一起查找了
     bool found = false;
     for (unsigned int i = 0; i < info.queue_family_size; i++) {
         if (info.queue_family_props[i].queueFlags & VK_QUEUE_GRAPHICS_BIT) {
@@ -416,7 +417,7 @@ void vulkan_init_renderpass(struct vulkan_tutorial_info &info, bool clear, VkIma
 
     VkResult res;
 
-    VkAttachmentDescription attachments[2];
+    VkAttachmentDescription attachments[1];
 
     attachments[0].format = info.format;
     attachments[0].samples = NUM_SAMPLES;
