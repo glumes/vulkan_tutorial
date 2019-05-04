@@ -726,4 +726,3 @@ void vulkan_init_device_extension_name(struct vulkan_tutorial_info &info) {
     info.device_extension_names.push_back(VK_KHR_SWAPCHAIN_EXTENSION_NAME);
 }
 
-

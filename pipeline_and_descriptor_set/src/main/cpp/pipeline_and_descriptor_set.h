@@ -5,6 +5,11 @@
 #ifndef VULKAN_TUTORIAL_PIPELINE_AND_DESCRIPTOR_SET_H
 #define VULKAN_TUTORIAL_PIPELINE_AND_DESCRIPTOR_SET_H
 
+#include <jni.h>
+#include <string>
+#include <android/native_window_jni.h>
+#include <android/native_window.h>
+
 #include <vulkan_util.h>
 
 #define NUM_DESCRIPTOR_SETS 1
