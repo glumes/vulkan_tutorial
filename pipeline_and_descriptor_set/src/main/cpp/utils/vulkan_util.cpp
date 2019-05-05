@@ -58,6 +58,10 @@ void vulkan_init_enumerate_device(struct vulkan_tutorial_info &info) {
     res = vkEnumeratePhysicalDevices(info.instance, &info.gpu_size, info.gpu_physical_devices.data());
     ErrorCheck(res);
     assert(info.gpu_size != 0);
+
+    // uniform 加上的
+    vkGetPhysicalDeviceMemoryProperties(info.gpu_physical_devices[0],&info.memory_properties);
+    vkGetPhysicalDeviceProperties(info.gpu_physical_devices[0],&info.gpu_props);
 }
 
 
@@ -1146,7 +1150,29 @@ void vulkan_init_uniform_buffer(struct vulkan_tutorial_info &info) {
     if (info.width > info.height) {
         fov *= static_cast<float>(info.height) / static_cast<float>(info.width);
     }
-    info.Projection = glm::perspective(fov, static_cast<float>(info.width) / static_cast<float>(info.height), 0.1f, 100.0f);
+    info.Projection = glm::perspective(fov, static_cast<float>(info.width) / static_cast<float>(info.height), 0.1f,
+                                       100.0f);
+    info.View = glm::lookAt(glm::vec3(-5, 3, -10),
+                            glm::vec3(0, 0, 0),
+                            glm::vec3(0, -1, 0));
 
+    info.Model = glm::mat4(1.0f);
+    info.Clip = glm::mat4(1.0f, 0.0f, 0.0f, 0.0f, 0.0f, -1.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.5f, 0.0f, 0.0f, 0.0f, 0.5f, 1.0f);
+
+    info.MVP = info.Clip * info.Projection * info.View * info.Model;
+
+    VkBufferCreateInfo bufferCreateInfo = {};
+
+    bufferCreateInfo.sType = VK_STRUCTURE_TYPE_BUFFER_CREATE_INFO;
+    bufferCreateInfo.pNext = nullptr;
+    bufferCreateInfo.usage = VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT;
+    bufferCreateInfo.size = sizeof(info.MVP);
+    bufferCreateInfo.queueFamilyIndexCount = 0;
+    bufferCreateInfo.pQueueFamilyIndices = nullptr;
+    bufferCreateInfo.sharingMode = VK_SHARING_MODE_EXCLUSIVE;
+    bufferCreateInfo.flags = 0;
+    res = vkCreateBuffer(info.device,&bufferCreateInfo,nullptr,&info.uniform_data.buf);
+
+    assert(res == VK_SUCCESS);
 
 }

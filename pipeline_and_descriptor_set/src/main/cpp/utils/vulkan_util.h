@@ -27,7 +27,7 @@
 #define NUM_SCISSORS NUM_VIEWPORTS
 
 #include <glm.hpp>
-#include <glm/gtc/matrix_transform.hpp>
+#include <ext.hpp>
 
 #define GET_INSTANCE_PROC_ADDR(inst, entrypoint)                               \
     {                                                                          \
@@ -37,10 +37,6 @@
         }                                                                      \
     }
 
-
-
-
-
 using namespace std;
 
 typedef struct _swap_chain_buffers {
@@ -49,43 +45,7 @@ typedef struct _swap_chain_buffers {
 } swap_chain_buffer;
 
 
-// shader
-struct shader_type_mapping {
-    VkShaderStageFlagBits vkshader_type;
-    shaderc_shader_kind shaderc_type;
-};
 
-static const shader_type_mapping shader_map_table[] = {
-        {VK_SHADER_STAGE_VERTEX_BIT, shaderc_glsl_vertex_shader},
-        {VK_SHADER_STAGE_TESSELLATION_CONTROL_BIT, shaderc_glsl_tess_control_shader},
-        {VK_SHADER_STAGE_TESSELLATION_EVALUATION_BIT, shaderc_glsl_tess_evaluation_shader},
-        {VK_SHADER_STAGE_GEOMETRY_BIT, shaderc_glsl_geometry_shader},
-        {VK_SHADER_STAGE_FRAGMENT_BIT, shaderc_glsl_fragment_shader},
-        {VK_SHADER_STAGE_COMPUTE_BIT, shaderc_glsl_compute_shader},
-};
-
-shaderc_shader_kind MapShadercType(VkShaderStageFlagBits vkShader) {
-    for (auto shader : shader_map_table) {
-        if (shader.vkshader_type == vkShader) {
-            return shader.shaderc_type;
-        }
-    }
-    assert(false);
-    return shaderc_glsl_infer_from_source;
-}
-
-bool memory_type_from_properties(struct sample_info &info, uint32_t typeBits, VkFlags requirements_mask, uint32_t *typeIndex) {
-    for (uint32_t i = 0; i < info.memory_properties.memoryTypeCount; i++) {
-        if ((typeBits & 1) == 1) {
-            if ((info.memory_properties.memoryTypes[i].propertyFlags & requirements_mask) == requirements_mask) {
-                *typeIndex = i;
-                return true;
-            }
-        }
-        typeBits >>= 1;
-    }
-    return false;
-}
 
 struct vulkan_tutorial_info {
     VkInstance instance;
@@ -185,7 +145,52 @@ struct vulkan_tutorial_info {
     glm::mat4 Clip;
     glm::mat4 MVP;
 
+    VkPhysicalDeviceMemoryProperties memory_properties;
+    VkPhysicalDeviceProperties gpu_props;
+
 };
+
+
+
+
+// shader
+struct shader_type_mapping {
+    VkShaderStageFlagBits vkshader_type;
+    shaderc_shader_kind shaderc_type;
+};
+
+static const shader_type_mapping shader_map_table[] = {
+        {VK_SHADER_STAGE_VERTEX_BIT, shaderc_glsl_vertex_shader},
+        {VK_SHADER_STAGE_TESSELLATION_CONTROL_BIT, shaderc_glsl_tess_control_shader},
+        {VK_SHADER_STAGE_TESSELLATION_EVALUATION_BIT, shaderc_glsl_tess_evaluation_shader},
+        {VK_SHADER_STAGE_GEOMETRY_BIT, shaderc_glsl_geometry_shader},
+        {VK_SHADER_STAGE_FRAGMENT_BIT, shaderc_glsl_fragment_shader},
+        {VK_SHADER_STAGE_COMPUTE_BIT, shaderc_glsl_compute_shader},
+};
+
+shaderc_shader_kind MapShadercType(VkShaderStageFlagBits vkShader) {
+    for (auto shader : shader_map_table) {
+        if (shader.vkshader_type == vkShader) {
+            return shader.shaderc_type;
+        }
+    }
+    assert(false);
+    return shaderc_glsl_infer_from_source;
+}
+
+
+bool memory_type_from_properties(struct vulkan_tutorial_info &info, uint32_t typeBits, VkFlags requirements_mask, uint32_t *typeIndex) {
+    for (uint32_t i = 0; i < info.memory_properties.memoryTypeCount; i++) {
+        if ((typeBits & 1) == 1) {
+            if ((info.memory_properties.memoryTypes[i].propertyFlags & requirements_mask) == requirements_mask) {
+                *typeIndex = i;
+                return true;
+            }
+        }
+        typeBits >>= 1;
+    }
+    return false;
+}
 
 
 VkResult initVulkan();
