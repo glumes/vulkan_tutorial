@@ -5,6 +5,41 @@
 #include <vulkan_util.h>
 #include "pipeline_and_descriptor_set.h"
 
+
+struct Vertex {
+    float posX, posY, posZ, posW;  // Position data
+    float r, g, b, a;              // Color
+};
+static const Vertex Data[] = {
+        -1.f,-1.f,-1.f,1.f,1.f,1.f,0.f,1.f,
+        1.f,-1.f,-1.f,1.f,1.f,1.f,0.f,1.f,
+        -1.f,1.f,-1.f,1.f,1.f,1.f,0.f,1.f
+};
+static const char *vertShaderText =
+        "#version 400\n"
+        "#extension GL_ARB_separate_shader_objects : enable\n"
+        "#extension GL_ARB_shading_language_420pack : enable\n"
+        "layout (std140, binding = 0) uniform bufferVals {\n"
+        "    mat4 mvp;\n"
+        "} myBufferVals;\n"
+        "layout (location = 0) in vec4 pos;\n"
+        "layout (location = 1) in vec4 inColor;\n"
+        "layout (location = 0) out vec4 outColor;\n"
+        "void main() {\n"
+        "   outColor = inColor;\n"
+        "   gl_Position = myBufferVals.mvp * pos;\n"
+        "}\n";
+
+static const char *fragShaderText =
+        "#version 400\n"
+        "#extension GL_ARB_separate_shader_objects : enable\n"
+        "#extension GL_ARB_shading_language_420pack : enable\n"
+        "layout (location = 0) in vec4 color;\n"
+        "layout (location = 0) out vec4 outColor;\n"
+        "void main() {\n"
+        "   outColor = color;\n"
+        "}\n";
+
 void run(struct vulkan_tutorial_info &info, ANativeWindow *window, int width, int height) {
 
     ErrorCheck(initVulkan());
@@ -47,12 +82,24 @@ void run(struct vulkan_tutorial_info &info, ANativeWindow *window, int width, in
 
     vulkan_init_framebuffer(info);
 
-
+    // 初始化 descriptor 相关的内容
     vulkan_init_descriptor_set_layout_and_pipeline_layout(info, false);
 
     vulkan_init_descriptor_pool(info, false);
 
     vulkan_init_descriptor_set(info, false);
+
+
+
+    // 初始化 shader 相关的内容
+    vulkan_init_shader(info,vertShaderText,fragShaderText);
+
+    vulkan_init_vertex_buffer(info,Data, sizeof(Data), sizeof(Data[0]), false);
+
+    // 初始化 pipeline 相关的内容
+    vulkan_init_pipeline_cache(info);
+
+    vulkan_init_pipeline(info, 0);
 
     VkSemaphore imageAcquiredSemaphore;
 

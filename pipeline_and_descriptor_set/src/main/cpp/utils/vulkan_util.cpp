@@ -829,11 +829,16 @@ void vulkan_init_descriptor_set(struct vulkan_tutorial_info &info, bool use_text
     vkUpdateDescriptorSets(info.device, use_texture ? 2 : 1, writes, 0, nullptr);
 }
 
-void vulkan_init_shader(struct vulkan_tutorial_info &info, const char *ertShaderText, const char *fragShaderText) {
+void vulkan_init_shader(struct vulkan_tutorial_info &info, const char *vertShaderText, const char *fragShaderText) {
     VkResult res;
     bool retVal;
-    if (ertShaderText) {
-        std::vector<unsigned int> tx_sp;
+
+    if (!(vertShaderText || fragShaderText)) return;
+
+    VkShaderModuleCreateInfo moduleCreateInfo;
+
+    if (vertShaderText) {
+        std::vector<unsigned int> vtx_spv;
         info.shaderStages[0].sType = VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO;
         info.shaderStages[0].pNext = nullptr;
         info.shaderStages[0].pSpecializationInfo = nullptr;
@@ -841,13 +846,245 @@ void vulkan_init_shader(struct vulkan_tutorial_info &info, const char *ertShader
         info.shaderStages[0].stage = VK_SHADER_STAGE_VERTEX_BIT;
         info.shaderStages[0].pName = "main";
 
-//        retVal =
+        retVal = vulkan_glsl_to_spv(VK_SHADER_STAGE_VERTEX_BIT, vertShaderText, vtx_spv);
+        assert(retVal);
+
+        moduleCreateInfo.sType = VK_STRUCTURE_TYPE_SHADER_MODULE_CREATE_INFO;
+        moduleCreateInfo.pNext = nullptr;
+        moduleCreateInfo.flags = 0;
+        moduleCreateInfo.codeSize = vtx_spv.size() * sizeof(unsigned int);
+        moduleCreateInfo.pCode = vtx_spv.data();
+        res = vkCreateShaderModule(info.device, &moduleCreateInfo, nullptr, &info.shaderStages[0].module);
+        assert(res == VK_SUCCESS);
+    }
+
+    if (fragShaderText) {
+        std::vector<unsigned int> frag_spv;
+        info.shaderStages[1].sType = VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO;
+        info.shaderStages[1].pNext = nullptr;
+        info.shaderStages[1].pSpecializationInfo = nullptr;
+        info.shaderStages[1].flags = 0;
+        info.shaderStages[1].stage = VK_SHADER_STAGE_FRAGMENT_BIT;
+        info.shaderStages[1].pName = "main";
+
+        retVal = vulkan_glsl_to_spv(VK_SHADER_STAGE_FRAGMENT_BIT, fragShaderText, frag_spv);
+
+        assert(retVal);
+
+        moduleCreateInfo.sType = VK_STRUCTURE_TYPE_SHADER_MODULE_CREATE_INFO;
+        moduleCreateInfo.pNext = nullptr;
+        moduleCreateInfo.flags = 0;
+        moduleCreateInfo.codeSize = frag_spv.size() * sizeof(unsigned int);
+        moduleCreateInfo.pCode = frag_spv.data();
+        res = vkCreateShaderModule(info.device, &moduleCreateInfo, nullptr, &info.shaderStages[1].module);
+        assert(res == VK_SUCCESS);
     }
 }
 
 
-void vulkan_glsl_to_spv(const VkShaderStageFlagBits shader_type, const char *pshader, std::vector<unsigned int> &spir){
-//    shaderc::Compiler compiler;
+bool
+vulkan_glsl_to_spv(const VkShaderStageFlagBits shader_type, const char *pshader, std::vector<unsigned int> &spirv) {
+    shaderc::Compiler compiler;
+    shaderc::SpvCompilationResult module = compiler.CompileGlslToSpv(pshader, strlen(pshader),
+                                                                     MapShadercType(shader_type), "shader");
+    if (module.GetCompilationStatus() != shaderc_compilation_status_success) {
+        LOGE("Error: Id=%d, Msg=%s", module.GetCompilationStatus(), module.GetErrorMessage().c_str());
+        return false;
+    }
+    spirv.assign(module.cbegin(), module.cend());
+    return true;
+}
+
+void vulkan_init_pipeline_cache(struct vulkan_tutorial_info &info) {
+    VkResult res;
+
+    VkPipelineCacheCreateInfo pipelineCacheCreateInfo;
+    pipelineCacheCreateInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_CACHE_CREATE_INFO;
+    pipelineCacheCreateInfo.pNext = nullptr;
+    pipelineCacheCreateInfo.initialDataSize = 0;
+    pipelineCacheCreateInfo.pInitialData = nullptr;
+    pipelineCacheCreateInfo.flags = 0;
+
+    res = vkCreatePipelineCache(info.device, &pipelineCacheCreateInfo, nullptr, &info.pipelineCache);
+    assert(res == VK_SUCCESS);
+}
+
+
+void vulkan_init_pipeline(struct vulkan_tutorial_info &info, VkBool32 include_vi) {
+    VkResult res;
+
+    VkDynamicState dynamicState[VK_DYNAMIC_STATE_RANGE_SIZE];
+    VkPipelineDynamicStateCreateInfo dynamicStateCreateInfo = {};
+    memset(dynamicState, 0, sizeof(dynamicState));
+
+    dynamicStateCreateInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_DYNAMIC_STATE_CREATE_INFO;
+    dynamicStateCreateInfo.pNext = nullptr;
+    dynamicStateCreateInfo.pDynamicStates = dynamicState;
+    dynamicStateCreateInfo.dynamicStateCount = 0;
+
+    // 顶点输入状态
+    VkPipelineVertexInputStateCreateInfo vertexInputStateCreateInfo;
+    memset(&vertexInputStateCreateInfo, 0, sizeof(vertexInputStateCreateInfo));
+
+    if (include_vi){
+        vertexInputStateCreateInfo.pNext = nullptr;
+        vertexInputStateCreateInfo.flags = 0;
+        vertexInputStateCreateInfo.vertexBindingDescriptionCount = 1;
+        vertexInputStateCreateInfo.pVertexBindingDescriptions = &info.vi_binding;
+        vertexInputStateCreateInfo.vertexAttributeDescriptionCount = 2;
+        vertexInputStateCreateInfo.pVertexAttributeDescriptions = info.vi_attribs;
+    }
+
+    // 绘制方式
+    VkPipelineInputAssemblyStateCreateInfo vkPipelineInputAssemblyStateCreateInfo;
+    vkPipelineInputAssemblyStateCreateInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_INPUT_ASSEMBLY_STATE_CREATE_INFO;
+    vkPipelineInputAssemblyStateCreateInfo.pNext = nullptr;
+    vkPipelineInputAssemblyStateCreateInfo.flags = 0;
+    vkPipelineInputAssemblyStateCreateInfo.primitiveRestartEnable = VK_FALSE;
+    vkPipelineInputAssemblyStateCreateInfo.topology = VK_PRIMITIVE_TOPOLOGY_TRIANGLE_LIST;
+
+    // 光栅化阶段
+    VkPipelineRasterizationStateCreateInfo vkPipelineRasterizationStateCreateInfo;
+    vkPipelineRasterizationStateCreateInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_RASTERIZATION_STATE_CREATE_INFO;
+    vkPipelineRasterizationStateCreateInfo.pNext = nullptr;
+    vkPipelineRasterizationStateCreateInfo.flags = 0;
+    vkPipelineRasterizationStateCreateInfo.polygonMode = VK_POLYGON_MODE_FILL;
+    vkPipelineRasterizationStateCreateInfo.cullMode = VK_CULL_MODE_BACK_BIT;
+    vkPipelineRasterizationStateCreateInfo.frontFace = VK_FRONT_FACE_CLOCKWISE;
+    vkPipelineRasterizationStateCreateInfo.depthClampEnable = VK_FALSE;
+    vkPipelineRasterizationStateCreateInfo.rasterizerDiscardEnable = VK_FALSE;
+    vkPipelineRasterizationStateCreateInfo.depthBiasEnable = VK_FALSE;
+    vkPipelineRasterizationStateCreateInfo.depthBiasConstantFactor = 0;
+    vkPipelineRasterizationStateCreateInfo.depthBiasClamp = 0;
+    vkPipelineRasterizationStateCreateInfo.depthBiasSlopeFactor = 0;
+    vkPipelineRasterizationStateCreateInfo.lineWidth = 1.0f;
+
+    // 颜色混合
+    VkPipelineColorBlendStateCreateInfo vkPipelineColorBlendStateCreateInfo;
+    vkPipelineColorBlendStateCreateInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_COLOR_BLEND_STATE_CREATE_INFO;
+    vkPipelineColorBlendStateCreateInfo.flags = 0;
+    vkPipelineColorBlendStateCreateInfo.pNext = nullptr;
+    VkPipelineColorBlendAttachmentState attachmentState[1];
+    attachmentState[0].colorWriteMask = 0xf;
+    attachmentState[0].blendEnable = VK_FALSE;
+    attachmentState[0].alphaBlendOp = VK_BLEND_OP_ADD;
+    attachmentState[0].colorBlendOp = VK_BLEND_OP_ADD;
+    attachmentState[0].srcColorBlendFactor = VK_BLEND_FACTOR_ZERO;
+    attachmentState[0].dstColorBlendFactor = VK_BLEND_FACTOR_ZERO;
+    attachmentState[0].srcAlphaBlendFactor = VK_BLEND_FACTOR_ZERO;
+    attachmentState[0].dstAlphaBlendFactor = VK_BLEND_FACTOR_ZERO;
+    vkPipelineColorBlendStateCreateInfo.attachmentCount = 1;
+    vkPipelineColorBlendStateCreateInfo.pAttachments = attachmentState;
+    vkPipelineColorBlendStateCreateInfo.logicOpEnable = VK_FALSE;
+    vkPipelineColorBlendStateCreateInfo.logicOp = VK_LOGIC_OP_NO_OP;
+    vkPipelineColorBlendStateCreateInfo.blendConstants[0] = 1.0f;
+    vkPipelineColorBlendStateCreateInfo.blendConstants[1] = 1.0f;
+    vkPipelineColorBlendStateCreateInfo.blendConstants[2] = 1.0f;
+    vkPipelineColorBlendStateCreateInfo.blendConstants[3] = 1.0f;
+
+    //设置 viewport
+    VkPipelineViewportStateCreateInfo vkPipelineViewportStateCreateInfo = {};
+    vkPipelineViewportStateCreateInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_VIEWPORT_STATE_CREATE_INFO;
+    vkPipelineViewportStateCreateInfo.pNext = nullptr;
+    vkPipelineViewportStateCreateInfo.flags = 0;
+
+    VkViewport vkviewport;
+    vkviewport.minDepth = 0.0f;
+    vkviewport.maxDepth = 1.0f;
+    vkviewport.x = 0;
+    vkviewport.y = 0;
+    vkviewport.width = info.width;
+    vkviewport.height = info.height;
+
+    VkRect2D scissor;
+    scissor.extent.width = info.width;
+    scissor.extent.height = info.height;
+    scissor.offset.x = 0;
+    scissor.offset.y = 0;
+    vkPipelineViewportStateCreateInfo.viewportCount = NUM_VIEWPORTS;
+    vkPipelineViewportStateCreateInfo.scissorCount = NUM_SCISSORS;
+    vkPipelineViewportStateCreateInfo.pScissors = &scissor;
+    vkPipelineViewportStateCreateInfo.pViewports = &vkviewport;
+
+    // 设置深度和模板
+    VkPipelineDepthStencilStateCreateInfo vkPipelineDepthStencilStateCreateInfo;
+    vkPipelineDepthStencilStateCreateInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_DEPTH_STENCIL_STATE_CREATE_INFO;
+    vkPipelineDepthStencilStateCreateInfo.pNext = nullptr;
+    vkPipelineDepthStencilStateCreateInfo.flags = 0;
+    vkPipelineDepthStencilStateCreateInfo.depthTestEnable = false;
+    vkPipelineDepthStencilStateCreateInfo.depthWriteEnable = false;
+    vkPipelineDepthStencilStateCreateInfo.depthCompareOp = VK_COMPARE_OP_LESS_OR_EQUAL;
+    vkPipelineDepthStencilStateCreateInfo.depthBoundsTestEnable = VK_FALSE;
+    vkPipelineDepthStencilStateCreateInfo.stencilTestEnable = VK_FALSE;
 
 }
 
+void
+vulkan_init_vertex_buffer(struct vulkan_tutorial_info &info, const void *vertexData, uint32_t dataSize, uint32_t dataStride,
+                     bool use_texture) {
+    VkResult res;
+    bool pass;
+
+    VkBufferCreateInfo bufferCreateInfo = {};
+    bufferCreateInfo.sType = VK_STRUCTURE_TYPE_BUFFER_CREATE_INFO;
+    bufferCreateInfo.pNext = nullptr;
+    bufferCreateInfo.usage = VK_BUFFER_USAGE_VERTEX_BUFFER_BIT;
+    bufferCreateInfo.size = dataSize;
+    bufferCreateInfo.queueFamilyIndexCount = 0;
+    bufferCreateInfo.pQueueFamilyIndices = nullptr;
+    bufferCreateInfo.sharingMode = VK_SHARING_MODE_EXCLUSIVE;
+    bufferCreateInfo.flags = 0;
+
+    res = vkCreateBuffer(info.device, &bufferCreateInfo, nullptr, &info.vertex_buffer.buf);
+
+    assert(res == VK_SUCCESS);
+
+    VkMemoryRequirements memoryRequirements;
+
+    vkGetBufferMemoryRequirements(info.device, info.vertex_buffer.buf, &memoryRequirements);
+
+    VkMemoryAllocateInfo allocateInfo = {};
+
+    allocateInfo.sType = VK_STRUCTURE_TYPE_MEMORY_ALLOCATE_INFO;
+    allocateInfo.pNext = nullptr;
+    allocateInfo.memoryTypeIndex = 0;
+    allocateInfo.allocationSize = memoryRequirements.size;
+
+    pass = memory_type_from_properties(info, memoryRequirements.memoryTypeBits,
+                                       VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT,
+                                       &allocateInfo.memoryTypeIndex);
+
+    assert(pass && "No mappable, coherent memory");
+
+    res = vkAllocateMemory(info.device, &allocateInfo, nullptr, &(info.vertex_buffer.mem));
+
+    assert(res == VK_SUCCESS);
+
+    info.vertex_buffer.buffer_info.range = memoryRequirements.size;
+    info.vertex_buffer.buffer_info.offset = 0;
+
+    uint8_t *pData;
+    res = vkMapMemory(info.device, info.vertex_buffer.mem, 0, memoryRequirements.size, 0, (void **) &pData);
+
+    assert(res == VK_SUCCESS);
+
+    memcpy(pData, vertexData, dataSize);
+
+    vkUnmapMemory(info.device, info.vertex_buffer.mem);
+
+    res = vkBindBufferMemory(info.device, info.vertex_buffer.buf, info.vertex_buffer.mem, 0);
+    assert(res == VK_SUCCESS);
+
+    info.vi_binding.binding = 0;
+    info.vi_binding.inputRate = VK_VERTEX_INPUT_RATE_VERTEX;
+    info.vi_binding.stride = dataStride;
+
+    info.vi_attribs[0].binding = 0;
+    info.vi_attribs[0].location = 0;
+    info.vi_attribs[0].format = VK_FORMAT_R32G32B32A32_SFLOAT;
+    info.vi_attribs[0].offset = 0;
+    info.vi_attribs[1].binding = 0;
+    info.vi_attribs[1].location = 1;
+    info.vi_attribs[1].format = use_texture ? VK_FORMAT_R32G32_SFLOAT : VK_FORMAT_R32G32B32A32_SFLOAT;
+    info.vi_attribs[1].offset = 16;
+}

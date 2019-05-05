@@ -23,6 +23,10 @@
 
 #include "shaderc/shaderc.hpp"
 
+#define NUM_VIEWPORTS 1
+#define NUM_SCISSORS NUM_VIEWPORTS
+
+
 #define GET_INSTANCE_PROC_ADDR(inst, entrypoint)                               \
     {                                                                          \
         info.fp##entrypoint =                                                  \
@@ -32,6 +36,9 @@
     }
 
 
+
+
+
 using namespace std;
 
 typedef struct _swap_chain_buffers {
@@ -39,6 +46,44 @@ typedef struct _swap_chain_buffers {
     VkImageView view;
 } swap_chain_buffer;
 
+
+// shader
+struct shader_type_mapping {
+    VkShaderStageFlagBits vkshader_type;
+    shaderc_shader_kind shaderc_type;
+};
+
+static const shader_type_mapping shader_map_table[] = {
+        {VK_SHADER_STAGE_VERTEX_BIT, shaderc_glsl_vertex_shader},
+        {VK_SHADER_STAGE_TESSELLATION_CONTROL_BIT, shaderc_glsl_tess_control_shader},
+        {VK_SHADER_STAGE_TESSELLATION_EVALUATION_BIT, shaderc_glsl_tess_evaluation_shader},
+        {VK_SHADER_STAGE_GEOMETRY_BIT, shaderc_glsl_geometry_shader},
+        {VK_SHADER_STAGE_FRAGMENT_BIT, shaderc_glsl_fragment_shader},
+        {VK_SHADER_STAGE_COMPUTE_BIT, shaderc_glsl_compute_shader},
+};
+
+shaderc_shader_kind MapShadercType(VkShaderStageFlagBits vkShader) {
+    for (auto shader : shader_map_table) {
+        if (shader.vkshader_type == vkShader) {
+            return shader.shaderc_type;
+        }
+    }
+    assert(false);
+    return shaderc_glsl_infer_from_source;
+}
+
+bool memory_type_from_properties(struct sample_info &info, uint32_t typeBits, VkFlags requirements_mask, uint32_t *typeIndex) {
+    for (uint32_t i = 0; i < info.memory_properties.memoryTypeCount; i++) {
+        if ((typeBits & 1) == 1) {
+            if ((info.memory_properties.memoryTypes[i].propertyFlags & requirements_mask) == requirements_mask) {
+                *typeIndex = i;
+                return true;
+            }
+        }
+        typeBits >>= 1;
+    }
+    return false;
+}
 
 struct vulkan_tutorial_info {
     VkInstance instance;
@@ -118,6 +163,18 @@ struct vulkan_tutorial_info {
 
     VkPipelineShaderStageCreateInfo shaderStages[2];
 
+    VkPipelineCache pipelineCache;
+
+    // vertex 相关
+    struct {
+        VkBuffer buf;
+        VkDeviceMemory mem;
+        VkDescriptorBufferInfo buffer_info;
+    } vertex_buffer;
+
+    VkVertexInputBindingDescription vi_binding;
+    VkVertexInputAttributeDescription vi_attribs[2];
+
 };
 
 
@@ -175,7 +232,14 @@ void vulkan_init_descriptor_set(struct vulkan_tutorial_info &info,bool use_textu
 
 void vulkan_init_shader(struct vulkan_tutorial_info &info,const char *ertShaderText, const char* fragShaderText);
 
-void vulkan_glsl_to_spv(const VkShaderStageFlagBits shader_type, const char *pshader, std::vector<unsigned int> &spir);
+bool vulkan_glsl_to_spv(const VkShaderStageFlagBits shader_type, const char *pshader, std::vector<unsigned int> &spir);
+
+void vulkan_init_pipeline_cache(struct vulkan_tutorial_info &info);
+
+void vulkan_init_pipeline(struct vulkan_tutorial_info &info,VkBool32 include_vi);
+
+void vulkan_init_vertex_buffer(struct vulkan_tutorial_info &info,const void *vertexData, uint32_t dataSize, uint32_t dataStride,
+                          bool use_texture);
 
 void ErrorCheck(VkResult result);
 

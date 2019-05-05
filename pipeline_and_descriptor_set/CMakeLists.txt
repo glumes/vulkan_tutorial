@@ -22,6 +22,7 @@ add_library( # Sets the name of the library.
         src/main/cpp/pipeline_and_descriptor_set.cpp
 
         src/main/cpp/utils/vulkan_util.cpp
+        src/main/cpp/utils/shader_util.cpp
         ${CMAKE_SOURCE_DIR}/src/main/cpp/vulkan_wrapper/vulkan_wrapper.cpp
         )
 
