@@ -926,7 +926,7 @@ void vulkan_init_pipeline(struct vulkan_tutorial_info &info, VkBool32 include_vi
     VkPipelineVertexInputStateCreateInfo vertexInputStateCreateInfo;
     memset(&vertexInputStateCreateInfo, 0, sizeof(vertexInputStateCreateInfo));
 
-    if (include_vi){
+    if (include_vi) {
         vertexInputStateCreateInfo.pNext = nullptr;
         vertexInputStateCreateInfo.flags = 0;
         vertexInputStateCreateInfo.vertexBindingDescriptionCount = 1;
@@ -1016,12 +1016,62 @@ void vulkan_init_pipeline(struct vulkan_tutorial_info &info, VkBool32 include_vi
     vkPipelineDepthStencilStateCreateInfo.depthCompareOp = VK_COMPARE_OP_LESS_OR_EQUAL;
     vkPipelineDepthStencilStateCreateInfo.depthBoundsTestEnable = VK_FALSE;
     vkPipelineDepthStencilStateCreateInfo.stencilTestEnable = VK_FALSE;
+    vkPipelineDepthStencilStateCreateInfo.back.failOp = VK_STENCIL_OP_KEEP;
+    vkPipelineDepthStencilStateCreateInfo.back.passOp = VK_STENCIL_OP_KEEP;
+    vkPipelineDepthStencilStateCreateInfo.back.compareOp = VK_COMPARE_OP_ALWAYS;
+    vkPipelineDepthStencilStateCreateInfo.back.compareMask = 0;
+    vkPipelineDepthStencilStateCreateInfo.back.reference = 0;
+    vkPipelineDepthStencilStateCreateInfo.back.depthFailOp = VK_STENCIL_OP_KEEP;
+    vkPipelineDepthStencilStateCreateInfo.back.writeMask = 0;
+    vkPipelineDepthStencilStateCreateInfo.minDepthBounds = 0;
+    vkPipelineDepthStencilStateCreateInfo.maxDepthBounds = 0;
+    vkPipelineDepthStencilStateCreateInfo.stencilTestEnable = VK_FALSE;
+    vkPipelineDepthStencilStateCreateInfo.front = vkPipelineDepthStencilStateCreateInfo.back;
 
+    // 多重采样
+    VkPipelineMultisampleStateCreateInfo vkPipelineMultisampleStateCreateInfo;
+    vkPipelineMultisampleStateCreateInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_MULTISAMPLE_STATE_CREATE_INFO;
+    vkPipelineMultisampleStateCreateInfo.pNext = nullptr;
+    vkPipelineMultisampleStateCreateInfo.flags = 0;
+    vkPipelineMultisampleStateCreateInfo.pSampleMask = nullptr;
+    vkPipelineMultisampleStateCreateInfo.rasterizationSamples = NUM_SAMPLES;
+    vkPipelineMultisampleStateCreateInfo.sampleShadingEnable = VK_FALSE;
+    vkPipelineMultisampleStateCreateInfo.alphaToCoverageEnable = VK_FALSE;
+    vkPipelineMultisampleStateCreateInfo.alphaToOneEnable = VK_FALSE;
+    vkPipelineMultisampleStateCreateInfo.minSampleShading = 0.0;
+
+    // 渲染管线
+    VkGraphicsPipelineCreateInfo vkGraphicsPipelineCreateInfo;
+    vkGraphicsPipelineCreateInfo.sType = VK_STRUCTURE_TYPE_GRAPHICS_PIPELINE_CREATE_INFO;
+    vkGraphicsPipelineCreateInfo.pNext = nullptr;
+    vkGraphicsPipelineCreateInfo.layout = info.pipeline_layout;
+    vkGraphicsPipelineCreateInfo.basePipelineHandle = VK_NULL_HANDLE;
+    vkGraphicsPipelineCreateInfo.basePipelineIndex = 0;
+    vkGraphicsPipelineCreateInfo.flags = 0;
+    vkGraphicsPipelineCreateInfo.pVertexInputState = &vertexInputStateCreateInfo;
+    vkGraphicsPipelineCreateInfo.pInputAssemblyState = &vkPipelineInputAssemblyStateCreateInfo;
+    vkGraphicsPipelineCreateInfo.pRasterizationState = &vkPipelineRasterizationStateCreateInfo;
+    vkGraphicsPipelineCreateInfo.pColorBlendState = &vkPipelineColorBlendStateCreateInfo;
+    vkGraphicsPipelineCreateInfo.pTessellationState = nullptr;
+    vkGraphicsPipelineCreateInfo.pMultisampleState = &vkPipelineMultisampleStateCreateInfo;
+    vkGraphicsPipelineCreateInfo.pDynamicState = &dynamicStateCreateInfo;
+    vkGraphicsPipelineCreateInfo.pViewportState = &vkPipelineViewportStateCreateInfo;
+    vkGraphicsPipelineCreateInfo.pDepthStencilState = &vkPipelineDepthStencilStateCreateInfo;
+    vkGraphicsPipelineCreateInfo.pStages = info.shaderStages;
+    vkGraphicsPipelineCreateInfo.stageCount = 1;
+    vkGraphicsPipelineCreateInfo.renderPass = info.render_pass;
+    vkGraphicsPipelineCreateInfo.subpass = 0;
+
+    res = vkCreateGraphicsPipelines(info.device, info.pipelineCache, 1, &vkGraphicsPipelineCreateInfo, nullptr,
+                                    &info.pipeline);
+
+    assert(res == VK_SUCCESS);
 }
 
 void
-vulkan_init_vertex_buffer(struct vulkan_tutorial_info &info, const void *vertexData, uint32_t dataSize, uint32_t dataStride,
-                     bool use_texture) {
+vulkan_init_vertex_buffer(struct vulkan_tutorial_info &info, const void *vertexData, uint32_t dataSize,
+                          uint32_t dataStride,
+                          bool use_texture) {
     VkResult res;
     bool pass;
 
@@ -1087,4 +1137,16 @@ vulkan_init_vertex_buffer(struct vulkan_tutorial_info &info, const void *vertexD
     info.vi_attribs[1].location = 1;
     info.vi_attribs[1].format = use_texture ? VK_FORMAT_R32G32_SFLOAT : VK_FORMAT_R32G32B32A32_SFLOAT;
     info.vi_attribs[1].offset = 16;
+}
+
+void vulkan_init_uniform_buffer(struct vulkan_tutorial_info &info) {
+    VkResult res;
+    bool pass;
+    float fov = glm::radians(45.0f);
+    if (info.width > info.height) {
+        fov *= static_cast<float>(info.height) / static_cast<float>(info.width);
+    }
+    info.Projection = glm::perspective(fov, static_cast<float>(info.width) / static_cast<float>(info.height), 0.1f, 100.0f);
+
+
 }

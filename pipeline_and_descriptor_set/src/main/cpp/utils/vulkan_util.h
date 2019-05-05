@@ -26,6 +26,8 @@
 #define NUM_VIEWPORTS 1
 #define NUM_SCISSORS NUM_VIEWPORTS
 
+#include <glm.hpp>
+#include <glm/gtc/matrix_transform.hpp>
 
 #define GET_INSTANCE_PROC_ADDR(inst, entrypoint)                               \
     {                                                                          \
@@ -175,6 +177,14 @@ struct vulkan_tutorial_info {
     VkVertexInputBindingDescription vi_binding;
     VkVertexInputAttributeDescription vi_attribs[2];
 
+    VkPipeline pipeline;
+
+    glm::mat4 Projection;
+    glm::mat4 View;
+    glm::mat4 Model;
+    glm::mat4 Clip;
+    glm::mat4 MVP;
+
 };
 
 
@@ -240,6 +250,8 @@ void vulkan_init_pipeline(struct vulkan_tutorial_info &info,VkBool32 include_vi)
 
 void vulkan_init_vertex_buffer(struct vulkan_tutorial_info &info,const void *vertexData, uint32_t dataSize, uint32_t dataStride,
                           bool use_texture);
+
+void vulkan_init_uniform_buffer(struct vulkan_tutorial_info &info);
 
 void ErrorCheck(VkResult result);
 

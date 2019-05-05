@@ -10,6 +10,9 @@ cmake_minimum_required(VERSION 3.4.1)
 # You can define multiple libraries, and CMake builds them for you.
 # Gradle automatically packages shared libraries with your APK.
 
+ADD_SUBDIRECTORY(${CMAKE_SOURCE_DIR}/src/main/cpp/glm)
+
+include_directories(${CMAKE_SOURCE_DIR}/src/main/cpp/glm/)
 
 add_library( # Sets the name of the library.
         vulkan_tutorial
@@ -75,6 +78,7 @@ target_link_libraries( # Specifies the target library.
         vulkan_tutorial
         shaderc_lib
         android
+        glm_shared
         # Links the target library to the log library
         # included in the NDK.
         ${log-lib})
