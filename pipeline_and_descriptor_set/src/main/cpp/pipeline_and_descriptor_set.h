@@ -15,7 +15,7 @@
 #define NUM_DESCRIPTOR_SETS 1
 
 
-void run(struct vulkan_tutorial_info &info);
+void run(struct vulkan_tutorial_info &info, ANativeWindow *window, int width, int height);
 
 void destroy(struct vulkan_tutorial_info &info);
 

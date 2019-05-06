@@ -72,15 +72,15 @@ void run(struct vulkan_tutorial_info &info, ANativeWindow *window, int width, in
 
     vulkan_init_command_buffer(info);
 
+    // start command buffer
     vulkan_execute_begin_command_buffer(info);
 
     vulkan_init_device_queue(info);
 
+
     vulkan_init_swapchain(info);
 
-    vulkan_init_renderpass(info);
-
-    vulkan_init_framebuffer(info);
+    vulkan_init_uniform_buffer(info);
 
     // 初始化 descriptor 相关的内容
     vulkan_init_descriptor_set_layout_and_pipeline_layout(info, false);
@@ -89,17 +89,20 @@ void run(struct vulkan_tutorial_info &info, ANativeWindow *window, int width, in
 
     vulkan_init_descriptor_set(info, false);
 
-
+    vulkan_init_renderpass(info);
 
     // 初始化 shader 相关的内容
     vulkan_init_shader(info,vertShaderText,fragShaderText);
 
+    vulkan_init_framebuffer(info);
+
     vulkan_init_vertex_buffer(info,Data, sizeof(Data), sizeof(Data[0]), false);
+
 
     // 初始化 pipeline 相关的内容
     vulkan_init_pipeline_cache(info);
 
-    vulkan_init_pipeline(info, 0);
+    vulkan_init_pipeline(info);
 
     VkSemaphore imageAcquiredSemaphore;
 
@@ -107,6 +110,7 @@ void run(struct vulkan_tutorial_info &info, ANativeWindow *window, int width, in
 
     vulkan_acquire_next_image(info, imageAcquiredSemaphore);
 
+    // build and end command buffer
     vulkan_build_command(info);
 
     vulkan_submit_command(info, drawFence, imageAcquiredSemaphore);

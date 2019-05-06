@@ -4,6 +4,48 @@
 
 #include "vulkan_util.h"
 
+
+// shader
+struct shader_type_mapping {
+    VkShaderStageFlagBits vkshader_type;
+    shaderc_shader_kind shaderc_type;
+};
+
+static const shader_type_mapping shader_map_table[] = {
+        {VK_SHADER_STAGE_VERTEX_BIT,                  shaderc_glsl_vertex_shader},
+        {VK_SHADER_STAGE_TESSELLATION_CONTROL_BIT,    shaderc_glsl_tess_control_shader},
+        {VK_SHADER_STAGE_TESSELLATION_EVALUATION_BIT, shaderc_glsl_tess_evaluation_shader},
+        {VK_SHADER_STAGE_GEOMETRY_BIT,                shaderc_glsl_geometry_shader},
+        {VK_SHADER_STAGE_FRAGMENT_BIT,                shaderc_glsl_fragment_shader},
+        {VK_SHADER_STAGE_COMPUTE_BIT,                 shaderc_glsl_compute_shader},
+};
+
+shaderc_shader_kind MapShadercType(VkShaderStageFlagBits vkShader) {
+    for (auto shader : shader_map_table) {
+        if (shader.vkshader_type == vkShader) {
+            return shader.shaderc_type;
+        }
+    }
+    assert(false);
+    return shaderc_glsl_infer_from_source;
+}
+
+
+bool memory_type_from_properties(struct vulkan_tutorial_info &info, uint32_t typeBits, VkFlags requirements_mask,
+                                 uint32_t *typeIndex) {
+    for (uint32_t i = 0; i < info.memory_properties.memoryTypeCount; i++) {
+        if ((typeBits & 1) == 1) {
+            if ((info.memory_properties.memoryTypes[i].propertyFlags & requirements_mask) == requirements_mask) {
+                *typeIndex = i;
+                return true;
+            }
+        }
+        typeBits >>= 1;
+    }
+    return false;
+}
+
+
 VkResult initVulkan() {
     if (!InitVulkan()) {
         return VK_ERROR_INITIALIZATION_FAILED;
@@ -59,9 +101,15 @@ void vulkan_init_enumerate_device(struct vulkan_tutorial_info &info) {
     ErrorCheck(res);
     assert(info.gpu_size != 0);
 
+    vkGetPhysicalDeviceQueueFamilyProperties(info.gpu_physical_devices[0],&info.queue_family_size, nullptr);
+    assert(info.queue_family_size >= 1);
+
+    info.queue_family_props.resize(info.queue_family_size);
+    vkGetPhysicalDeviceQueueFamilyProperties(info.gpu_physical_devices[0],&info.queue_family_size,info.queue_family_props.data());
+
     // uniform 加上的
-    vkGetPhysicalDeviceMemoryProperties(info.gpu_physical_devices[0],&info.memory_properties);
-    vkGetPhysicalDeviceProperties(info.gpu_physical_devices[0],&info.gpu_props);
+    vkGetPhysicalDeviceMemoryProperties(info.gpu_physical_devices[0], &info.memory_properties);
+    vkGetPhysicalDeviceProperties(info.gpu_physical_devices[0], &info.gpu_props);
 }
 
 
@@ -337,7 +385,7 @@ void vulkan_init_swapchain(struct vulkan_tutorial_info &info) {
     swapchain_ci.oldSwapchain = VK_NULL_HANDLE;
     swapchain_ci.clipped = true;
     swapchain_ci.imageColorSpace = VK_COLORSPACE_SRGB_NONLINEAR_KHR;
-    swapchain_ci.imageUsage = VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT;
+    swapchain_ci.imageUsage = VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT | VK_IMAGE_USAGE_TRANSFER_SRC_BIT;
     swapchain_ci.imageSharingMode = VK_SHARING_MODE_EXCLUSIVE;
     swapchain_ci.queueFamilyIndexCount = 0;
     swapchain_ci.pQueueFamilyIndices = NULL;
@@ -376,7 +424,6 @@ void vulkan_init_swapchain(struct vulkan_tutorial_info &info) {
     for (uint32_t i = 0; i < info.swapchainImageCount; i++) {
         info.buffers[i].image = swapchainImages[i];
     }
-
 
     // init swap chain image
 
@@ -488,6 +535,7 @@ void vulkan_init_framebuffer(struct vulkan_tutorial_info &info) {
 
     info.framebuffers = static_cast<VkFramebuffer *>(malloc(info.swapchainImageCount * sizeof(VkFramebuffer)));
 
+
     for (int i = 0; i < info.swapchainImageCount; ++i) {
         attachments[0] = info.buffers[i].view;
         res = vkCreateFramebuffer(info.device, &fb_info, nullptr, &info.framebuffers[i]);
@@ -546,6 +594,9 @@ void vulkan_acquire_next_image(struct vulkan_tutorial_info &info, VkSemaphore &i
 
     assert(res == VK_SUCCESS);
 
+    //从交换链中获取一个图像
+    //在帧缓冲区中，使用作为附件的图像来执行命令缓冲区中的命令
+    //为了最终呈现，将图像返还到交换链
     res = vkAcquireNextImageKHR(info.device, info.swap_chain, UINT64_MAX, imageAcquiredSemaphore, VK_NULL_HANDLE,
                                 &info.current_buffer);
 
@@ -557,7 +608,7 @@ void vulkan_acquire_next_image(struct vulkan_tutorial_info &info, VkSemaphore &i
 void vulkan_build_command(struct vulkan_tutorial_info &info) {
     VkResult res;
     VkClearValue clearValue[2];
-    clearValue[0].color.float32[0] = 1.0f;
+    clearValue[0].color.float32[0] = 0.2f;
     clearValue[0].color.float32[1] = 0.2f;
     clearValue[0].color.float32[2] = 0.2f;
     clearValue[0].color.float32[3] = 0.2f;
@@ -578,7 +629,16 @@ void vulkan_build_command(struct vulkan_tutorial_info &info) {
 
     vkCmdBeginRenderPass(info.cmd, &rp_begin, VK_SUBPASS_CONTENTS_INLINE);
 
+    vkCmdBindPipeline(info.cmd, VK_PIPELINE_BIND_POINT_GRAPHICS, info.pipeline);
+
+    vkCmdBindDescriptorSets(info.cmd, VK_PIPELINE_BIND_POINT_GRAPHICS, info.pipeline_layout, 0, NUM_DESCRIPTOR_SETS,
+                            info.desc_set.data(), 0,
+                            nullptr);
+
     const VkDeviceSize offsets[1] = {0};
+    vkCmdBindVertexBuffers(info.cmd, 0, 1, &info.vertex_buffer.buf, offsets);
+
+    vkCmdDraw(info.cmd, 12 * 3, 1, 0, 0);
 
     vkCmdEndRenderPass(info.cmd);
 
@@ -860,6 +920,8 @@ void vulkan_init_shader(struct vulkan_tutorial_info &info, const char *vertShade
         moduleCreateInfo.pCode = vtx_spv.data();
         res = vkCreateShaderModule(info.device, &moduleCreateInfo, nullptr, &info.shaderStages[0].module);
         assert(res == VK_SUCCESS);
+
+        LOGE("init vertex shader");
     }
 
     if (fragShaderText) {
@@ -882,6 +944,9 @@ void vulkan_init_shader(struct vulkan_tutorial_info &info, const char *vertShade
         moduleCreateInfo.pCode = frag_spv.data();
         res = vkCreateShaderModule(info.device, &moduleCreateInfo, nullptr, &info.shaderStages[1].module);
         assert(res == VK_SUCCESS);
+
+        LOGE("init fragment shader");
+
     }
 }
 
@@ -1062,7 +1127,7 @@ void vulkan_init_pipeline(struct vulkan_tutorial_info &info, VkBool32 include_vi
     vkGraphicsPipelineCreateInfo.pViewportState = &vkPipelineViewportStateCreateInfo;
     vkGraphicsPipelineCreateInfo.pDepthStencilState = &vkPipelineDepthStencilStateCreateInfo;
     vkGraphicsPipelineCreateInfo.pStages = info.shaderStages;
-    vkGraphicsPipelineCreateInfo.stageCount = 1;
+    vkGraphicsPipelineCreateInfo.stageCount = 2;
     vkGraphicsPipelineCreateInfo.renderPass = info.render_pass;
     vkGraphicsPipelineCreateInfo.subpass = 0;
 
@@ -1157,7 +1222,8 @@ void vulkan_init_uniform_buffer(struct vulkan_tutorial_info &info) {
                             glm::vec3(0, -1, 0));
 
     info.Model = glm::mat4(1.0f);
-    info.Clip = glm::mat4(1.0f, 0.0f, 0.0f, 0.0f, 0.0f, -1.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.5f, 0.0f, 0.0f, 0.0f, 0.5f, 1.0f);
+    info.Clip = glm::mat4(1.0f, 0.0f, 0.0f, 0.0f, 0.0f, -1.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.5f, 0.0f, 0.0f, 0.0f, 0.5f,
+                          1.0f);
 
     info.MVP = info.Clip * info.Projection * info.View * info.Model;
 
@@ -1171,8 +1237,40 @@ void vulkan_init_uniform_buffer(struct vulkan_tutorial_info &info) {
     bufferCreateInfo.pQueueFamilyIndices = nullptr;
     bufferCreateInfo.sharingMode = VK_SHARING_MODE_EXCLUSIVE;
     bufferCreateInfo.flags = 0;
-    res = vkCreateBuffer(info.device,&bufferCreateInfo,nullptr,&info.uniform_data.buf);
+    res = vkCreateBuffer(info.device, &bufferCreateInfo, nullptr, &info.uniform_data.buf);
 
     assert(res == VK_SUCCESS);
 
+    VkMemoryRequirements memoryRequirements;
+    vkGetBufferMemoryRequirements(info.device, info.uniform_data.buf, &memoryRequirements);
+
+    VkMemoryAllocateInfo vkMemoryAllocateInfo = {};
+
+    vkMemoryAllocateInfo.sType = VK_STRUCTURE_TYPE_MEMORY_ALLOCATE_INFO;
+    vkMemoryAllocateInfo.pNext = nullptr;
+    vkMemoryAllocateInfo.memoryTypeIndex = 0;
+    vkMemoryAllocateInfo.allocationSize = memoryRequirements.size;
+
+
+    pass = memory_type_from_properties(info, memoryRequirements.memoryTypeBits,
+                                       VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT,
+                                       &vkMemoryAllocateInfo.memoryTypeIndex);
+
+    assert(pass && "No mappable, coherent memory");
+
+    res = vkAllocateMemory(info.device, &vkMemoryAllocateInfo, nullptr, &(info.uniform_data.mem));
+    assert(res == VK_SUCCESS);
+
+    uint8_t *pData;
+    res = vkMapMemory(info.device, info.uniform_data.mem, 0, memoryRequirements.size, 0, (void **) &pData);
+    assert(res == VK_SUCCESS);
+
+    memcpy(pData, &info.MVP, sizeof(info.MVP));
+    vkUnmapMemory(info.device, info.uniform_data.mem);
+    res = vkBindBufferMemory(info.device, info.uniform_data.buf, info.uniform_data.mem, 0);
+    assert(res == VK_SUCCESS);
+
+    info.uniform_data.buffer_info.buffer = info.uniform_data.buf;
+    info.uniform_data.buffer_info.offset = 0;
+    info.uniform_data.buffer_info.range = sizeof(info.MVP);
 }

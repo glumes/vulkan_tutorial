@@ -45,8 +45,6 @@ typedef struct _swap_chain_buffers {
 } swap_chain_buffer;
 
 
-
-
 struct vulkan_tutorial_info {
     VkInstance instance;
     VkDevice device;
@@ -153,46 +151,6 @@ struct vulkan_tutorial_info {
 
 
 
-// shader
-struct shader_type_mapping {
-    VkShaderStageFlagBits vkshader_type;
-    shaderc_shader_kind shaderc_type;
-};
-
-static const shader_type_mapping shader_map_table[] = {
-        {VK_SHADER_STAGE_VERTEX_BIT, shaderc_glsl_vertex_shader},
-        {VK_SHADER_STAGE_TESSELLATION_CONTROL_BIT, shaderc_glsl_tess_control_shader},
-        {VK_SHADER_STAGE_TESSELLATION_EVALUATION_BIT, shaderc_glsl_tess_evaluation_shader},
-        {VK_SHADER_STAGE_GEOMETRY_BIT, shaderc_glsl_geometry_shader},
-        {VK_SHADER_STAGE_FRAGMENT_BIT, shaderc_glsl_fragment_shader},
-        {VK_SHADER_STAGE_COMPUTE_BIT, shaderc_glsl_compute_shader},
-};
-
-shaderc_shader_kind MapShadercType(VkShaderStageFlagBits vkShader) {
-    for (auto shader : shader_map_table) {
-        if (shader.vkshader_type == vkShader) {
-            return shader.shaderc_type;
-        }
-    }
-    assert(false);
-    return shaderc_glsl_infer_from_source;
-}
-
-
-bool memory_type_from_properties(struct vulkan_tutorial_info &info, uint32_t typeBits, VkFlags requirements_mask, uint32_t *typeIndex) {
-    for (uint32_t i = 0; i < info.memory_properties.memoryTypeCount; i++) {
-        if ((typeBits & 1) == 1) {
-            if ((info.memory_properties.memoryTypes[i].propertyFlags & requirements_mask) == requirements_mask) {
-                *typeIndex = i;
-                return true;
-            }
-        }
-        typeBits >>= 1;
-    }
-    return false;
-}
-
-
 VkResult initVulkan();
 
 
@@ -251,7 +209,7 @@ bool vulkan_glsl_to_spv(const VkShaderStageFlagBits shader_type, const char *psh
 
 void vulkan_init_pipeline_cache(struct vulkan_tutorial_info &info);
 
-void vulkan_init_pipeline(struct vulkan_tutorial_info &info,VkBool32 include_vi);
+void vulkan_init_pipeline(struct vulkan_tutorial_info &info,VkBool32 include_vi = true);
 
 void vulkan_init_vertex_buffer(struct vulkan_tutorial_info &info,const void *vertexData, uint32_t dataSize, uint32_t dataStride,
                           bool use_texture);
